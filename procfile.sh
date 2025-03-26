@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eux
+
 opentelemetry-instrument \
   --traces_exporter console \
   --metrics_exporter console \
