@@ -15,20 +15,46 @@ def init():
     return client
 
 
-def get_followers(client: atproto.Client, handle: str, did: str) -> typing.Dict[str, typing.Any]:
+def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = _get_or_return_cache(
+        handle, "get_profile", lambda: client.get_profile(handle)
+    )
+    return {
+        profile.did: {
+            "handle": profile.handle,
+            "avatar": profile.avatar,
+            "description": profile.description,
+            "display_name": profile.display_name,
+            "followers_count": profile.followers_count,
+            "follows_count": profile.follows_count,
+            "created_at": profile.created_at,
+        }
+    }
+
+
+def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in _get_or_return_cache(f"{did}", "get_followers", lambda: _get_followers(client, handle))
+        for profile in _get_or_return_cache(handle, "get_followers", lambda: _get_followers(client, handle))
     }
     return followers
 
 
-def get_following(client: atproto.Client, handle: str, did: str) -> typing.Dict[str, typing.Any]:
+def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in _get_or_return_cache(f"{did}", "get_following", lambda: _get_following(client, handle))
+        for profile in _get_or_return_cache(handle, "get_following", lambda: _get_following(client, handle))
     }
     return followers
+
+
+def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dict[str, typing.Any]:
+    return {
+        "handle": profile.handle,
+        "avatar": profile.avatar,
+        "description": profile.description,
+        "display_name": profile.display_name,
+    }
 
 
 def _get_or_return_cache(key: str, func_name: str, func: typing.Callable) -> typing.Any:
@@ -41,15 +67,6 @@ def _get_or_return_cache(key: str, func_name: str, func: typing.Callable) -> typ
         result = func()
         cache[key] = result
         return result
-
-
-def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dict[str, typing.Any]:
-    return {
-        "handle": profile.handle,
-        "avatar": profile.avatar,
-        "description": profile.description,
-        "display_name": profile.display_name,
-    }
 
 
 def _get_followers(
