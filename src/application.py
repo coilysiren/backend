@@ -7,7 +7,6 @@ import fastapi.middleware.trustedhost as trustedhost
 import slowapi
 import slowapi.errors
 import slowapi.util
-
 import starlette.responses
 import starlette.middleware.base as middleware
 
