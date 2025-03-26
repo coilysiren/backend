@@ -1,1 +1,1 @@
-web: poetry run uvicorn src.main:app
+web: uvicorn src.main:app
