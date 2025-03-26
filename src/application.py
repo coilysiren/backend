@@ -30,7 +30,7 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
     app.add_middleware(
         cors.CORSMiddleware,
         allow_origins=[
-            "" if os.getenv("PRODUCTION") == "True" else "localhost",
+            "" if os.getenv("PRODUCTION", "").lower() == "true" else "localhost",
             "https://coilysiren.me/",
             "https://api.coilysiren.me/",
         ],
@@ -40,7 +40,7 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
     app.add_middleware(
         trustedhost.TrustedHostMiddleware,
         allowed_hosts=[
-            "" if os.getenv("PRODUCTION") == "True" else "localhost",
+            "" if os.getenv("PRODUCTION", "").lower() == "true" else "localhost",
             "coilysiren.me",
             "api.coilysiren.me",
         ],
