@@ -60,6 +60,7 @@ def _get_followers(
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
     followers = followers or []
 
+    # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
     response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(handle, limit=100, cursor=cursor)
     followers = followers + response.followers
     if response.cursor:
@@ -76,6 +77,7 @@ def _get_following(
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
     following = following or []
 
+    # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
     response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
     following = following + response.follows
     if response.cursor:

@@ -1,5 +1,6 @@
 import dotenv
 import fastapi
+import opentelemetry.instrumentation.fastapi as otel_fastapi
 
 from . import bsky
 from . import application
@@ -31,3 +32,6 @@ async def bsky_following(request: fastapi.Request, handle: str):
     profile = bsky_client.get_profile(handle)
     output = bsky.get_following(bsky_client, handle, profile.did)
     return output
+
+
+otel_fastapi.FastAPIInstrumentor.instrument_app(app)
