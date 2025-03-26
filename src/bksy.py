@@ -2,12 +2,12 @@ import os
 
 import typing
 
-import atproto
+import atproto  # type: ignore
 
 
 def init():
     client = atproto.Client("https://bsky.social")
-    client.login(login="coilysiren.me", password=os.getenv("BSKY_PASSWORD"))
+    client.login(login=os.getenv("BSKY_USERNAME"), password=os.getenv("BSKY_PASSWORD"))
     return client
 
 
