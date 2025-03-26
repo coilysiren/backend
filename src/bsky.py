@@ -2,7 +2,6 @@ import os
 import typing
 
 import atproto  # type: ignore
-import opentelemetry
 import structlog
 
 
@@ -38,12 +37,10 @@ def _get_or_return_cache(key: str, func_name: str, func: typing.Callable) -> typ
         log.info("cache", adjective="hit", func_name=func_name, key=key)
         return cache[key]
     else:
-        tracer = opentelemetry.trace.get_tracer("get_or_return_cache")
-        with tracer.start_as_current_span("get_or_return_cache"):
-            log.info("cache", adjective="miss", func_name=func_name, key=key)
-            result = func()
-            cache[key] = result
-            return result
+        log.info("cache", adjective="miss", func_name=func_name, key=key)
+        result = func()
+        cache[key] = result
+        return result
 
 
 def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dict[str, typing.Any]:
