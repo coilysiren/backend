@@ -3,6 +3,11 @@ import os
 import typing
 
 import atproto  # type: ignore
+import structlog
+
+
+log = structlog.get_logger()
+cache: typing.Dict[str, typing.Any] = {}
 
 
 def init():
@@ -11,14 +16,32 @@ def init():
     return client
 
 
-def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
-    followers = {profile.did: _format_profile(profile) for profile in _get_followers(client, handle)}
+def get_followers(client: atproto.Client, handle: str, did: str) -> typing.Dict[str, typing.Any]:
+    followers = {
+        profile.did: _format_profile(profile)
+        for profile in _get_or_return_cache(f"{did}", "get_followers", lambda: _get_followers(client, handle))
+    }
     return followers
 
 
-def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
-    followers = {profile.did: _format_profile(profile) for profile in _get_following(client, handle)}
+def get_following(client: atproto.Client, handle: str, did: str) -> typing.Dict[str, typing.Any]:
+    followers = {
+        profile.did: _format_profile(profile)
+        for profile in _get_or_return_cache(f"{did}", "get_following", lambda: _get_following(client, handle))
+    }
     return followers
+
+
+def _get_or_return_cache(key: str, func_name: str, func: typing.Callable) -> typing.Any:
+    key = f"{func_name}-{key}"
+    if key in cache:
+        log.info("cache", adjective="hit", func_name=func_name, key=key)
+        return cache[key]
+    else:
+        log.info("cache", adjective="miss", func_name=func_name, key=key)
+        result = func()
+        cache[key] = result
+        return result
 
 
 def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dict[str, typing.Any]:

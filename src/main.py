@@ -22,7 +22,9 @@ async def bsky_followers(request: fastapi.Request):
     handle = request.query_params.get("handle", "")
     if not handle:
         raise fastapi.HTTPException(status_code=400, detail="No handle provided")
-    return bsky.get_followers(bsky_client, handle)
+    profile = bsky_client.get_profile(handle)
+    output = bsky.get_followers(bsky_client, handle, profile.did)
+    return output
 
 
 @app.get("/bsky/following")
@@ -32,4 +34,6 @@ async def bsky_following(request: fastapi.Request):
     handle = request.query_params.get("handle", "")
     if not handle:
         raise fastapi.HTTPException(status_code=400, detail="No handle provided")
-    return bsky.get_following(bsky_client, handle)
+    profile = bsky_client.get_profile(handle)
+    output = bsky.get_following(bsky_client, handle, profile.did)
+    return output
