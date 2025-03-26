@@ -1,12 +1,12 @@
 import dotenv
 import fastapi
 
-from . import bksy
+from . import bsky
 from . import application
 
 dotenv.load_dotenv()
 (app, limiter) = application.init()
-bksy_client = bksy.init()
+bsky_client = bsky.init()
 
 
 @app.get("/")
@@ -15,21 +15,21 @@ async def root(request: fastapi.Request):
     return ["hello world"]
 
 
-@app.get("/bksy/followers")
-@app.get("/bksy/followers/")
+@app.get("/bsky/followers")
+@app.get("/bsky/followers/")
 @limiter.limit("1/second")
-async def bksy_followers(request: fastapi.Request):
+async def bsky_followers(request: fastapi.Request):
     handle = request.query_params.get("handle", "")
     if not handle:
         raise fastapi.HTTPException(status_code=400, detail="No handle provided")
-    return bksy.get_followers(bksy_client, handle)
+    return bsky.get_followers(bsky_client, handle)
 
 
-@app.get("/bksy/following")
-@app.get("/bksy/following/")
+@app.get("/bsky/following")
+@app.get("/bsky/following/")
 @limiter.limit("1/second")
-async def bksy_following(request: fastapi.Request):
+async def bsky_following(request: fastapi.Request):
     handle = request.query_params.get("handle", "")
     if not handle:
         raise fastapi.HTTPException(status_code=400, detail="No handle provided")
-    return bksy.get_following(bksy_client, handle)
+    return bsky.get_following(bsky_client, handle)

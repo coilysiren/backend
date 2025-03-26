@@ -48,7 +48,7 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
     )
 
     # Timeout requests after N seconds
-    app.add_middleware(TimeoutMiddleware, timeout=5)
+    app.add_middleware(TimeoutMiddleware, timeout=30)
 
     # Configure rate limiting
     # docs: https://slowapi.readthedocs.io/en/latest/
