@@ -7,12 +7,63 @@ import structlog
 
 log = structlog.get_logger()
 cache: typing.Dict[str, typing.Any] = {}
+FOLLOWS_PER_PAGE = 100  # the max
+MAX_FOLLOWS_PAGES = 50  # this number * FOLLOWS_PER_PAGE is the max number of follows to list
 
 
 def init():
     client = atproto.Client("https://bsky.social")
     client.login(login=os.getenv("BSKY_USERNAME"), password=os.getenv("BSKY_PASSWORD"))
     return client
+
+
+def recommendations(client: atproto.Client, me: str) -> typing.Dict[str, typing.Any]:
+    """
+    For everyone that I follow,
+    list who they follow that I don't follow.
+    """
+    my_following = get_following(client, me)
+    reccomendations = {}
+
+    # For everyone that I follow,
+    for _, _first_profile in my_following.items():
+        if _first_handle := _first_profile.get("handle"):
+
+            # List of who they follow
+            following = get_following(client, _first_handle)
+
+            # And remove the people I follow
+            for _, _second_profile in following.items():
+                if (_second_handle := _second_profile.get("handle")) not in my_following:
+
+                    # Then add them to the reccomendations
+                    reccomendations[_second_handle] = _second_profile
+
+    return reccomendations
+
+
+def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
+    """
+    For some person I follow,
+    show who lends 'credibility' to them in the form of a follow,
+    as of of a percent of their followers.
+    100% credibility would mean that all of their followers are people I follow.
+    """
+    thier_followers = get_followers(client, them)  # this is requested twice, but cached
+    lenders = credibilty(client, me, them)
+    percent = len(lenders) / len(thier_followers)
+    return round(percent * 100, 0)
+
+
+def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, typing.Any]:
+    """
+    For some person I follow,
+    show who lends 'credibility' to them in the form of a follow
+    """
+    my_following = get_following(client, me)
+    thier_followers = get_followers(client, them)
+    lenders = {k: v for k, v in my_following.items() if k in thier_followers}
+    return lenders
 
 
 def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
@@ -74,14 +125,16 @@ def _get_followers(
     handle: str,
     cursor: str = "",
     followers: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
+    depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
     followers = followers or []
 
     # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
     response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(handle, limit=100, cursor=cursor)
     followers = followers + response.followers
-    if response.cursor:
-        return _get_followers(client, handle, cursor=response.cursor, followers=followers)
+    depth += 1
+    if response.cursor and depth < MAX_FOLLOWS_PAGES:
+        return _get_followers(client, handle, cursor=response.cursor, followers=followers, depth=depth)
     else:
         return followers or []
 
@@ -91,13 +144,15 @@ def _get_following(
     handle: str,
     cursor: str = "",
     following: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
+    depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
     following = following or []
 
     # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
     response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
     following = following + response.follows
-    if response.cursor:
-        return _get_following(client, handle, cursor=response.cursor, following=following)
+    depth += 1
+    if response.cursor and depth < MAX_FOLLOWS_PAGES:
+        return _get_following(client, handle, cursor=response.cursor, following=following, depth=depth)
     else:
         return following or []
