@@ -33,9 +33,9 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
             (
                 "" if os.getenv("PRODUCTION", "").lower() == "true" else "http://localhost:8000"
             ),  # hardcodes the frontend port to 8000
-            "https://coilysiren.me/",
-            "https://www.coilysiren.me/",
-            "https://api.coilysiren.me/",
+            "https://coilysiren.me",
+            "https://www.coilysiren.me",
+            "https://api.coilysiren.me",
         ],
     )
 
