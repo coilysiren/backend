@@ -81,10 +81,10 @@ async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow,
     as of of a percent of their followers.
-    100% credibility would mean that all of their followers are people I follow.
+    1 credibility would mean that all of their followers are people I follow.
     """
     percent = bsky.credibilty_percent(bsky_client, me, them)
-    return str(percent).split(".", maxsplit=1)[0] + "%"
+    return percent
 
 
 @app.get("/bsky/{me}/recommendations")

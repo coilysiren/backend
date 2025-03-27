@@ -1,4 +1,3 @@
-import random
 import typing
 import os
 
@@ -11,11 +10,11 @@ cache: typing.Dict[str, typing.Any] = {}
 
 # MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of follows to list
 FOLLOWS_PER_PAGE = 100  # the max
-MAX_FOLLOWS_PAGES = 50
+MAX_FOLLOWS_PAGES = 10
 
 # MAX_RECC_PAGES * RECS_PER_PAGE * MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of reccomendations to list
-RECS_PER_PAGE = 10
-MAX_RECC_PAGES = 10
+RECS_PER_PAGE = 5
+MAX_RECC_PAGES = 5
 
 
 def init():
@@ -49,8 +48,8 @@ def recommendations(client: atproto.Client, me: str, index=0) -> tuple[list[str]
                 # Then add them to the reccomendations
                 reccomendations.append(thier_follow)
 
-    # 0 out next index (indicating the we are done) if we are at the end of the list
-    next_index = next_index if next_index < RECS_PER_PAGE * MAX_RECC_PAGES else 0
+    # return -1 next index (indicating the we are done) if we are at the end of the list
+    next_index = next_index if next_index < RECS_PER_PAGE * MAX_RECC_PAGES else -1
 
     return (reccomendations, next_index)
 
@@ -60,12 +59,12 @@ def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow,
     as of of a percent of their followers.
-    100% credibility would mean that all of their followers are people I follow.
+    1 (eg. 100%) credibility would mean that all of their followers are people I follow.
     """
     thier_followers = get_followers(client, them)  # this is requested twice, but cached
     lenders = credibilty(client, me, them)
     percent = len(lenders) / len(thier_followers)
-    return round(percent * 100, 0)
+    return percent
 
 
 def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, typing.Any]:
