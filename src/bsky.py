@@ -17,27 +17,26 @@ def init():
     return client
 
 
-def recommendations(client: atproto.Client, me: str) -> typing.Dict[str, typing.Any]:
+def recommendations(client: atproto.Client, me: str) -> list[str]:
     """
     For everyone that I follow,
     list who they follow that I don't follow.
     """
-    my_following = get_following(client, me)
-    reccomendations = {}
+    my_following = get_following_handles(client, me)
+    reccomendations = []
 
     # For everyone that I follow,
-    for _, _first_profile in my_following.items():
-        if _first_handle := _first_profile.get("handle"):
+    for my_follow in my_following:
 
-            # List of who they follow
-            following = get_following(client, _first_handle)
+        # List of who they follow
+        following = get_following_handles(client, my_follow)
 
-            # And remove the people I follow
-            for _, _second_profile in following.items():
-                if (_second_handle := _second_profile.get("handle")) not in my_following:
+        # And remove the people I follow
+        for thier_follow in following:
+            if thier_follow not in my_following:
 
-                    # Then add them to the reccomendations
-                    reccomendations[_second_handle] = _second_profile
+                # Then add them to the reccomendations
+                reccomendations.append(thier_follow)
 
     return reccomendations
 
@@ -97,6 +96,12 @@ def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typin
         for profile in _get_or_return_cache(handle, "get_following", lambda: _get_following(client, handle))
     }
     return followers
+
+
+def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
+    return _get_or_return_cache(
+        handle, "get_following_handles", lambda: [profile.handle for profile in _get_following(client, handle)]
+    )
 
 
 def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dict[str, typing.Any]:

@@ -34,6 +34,14 @@ async def bsky_following(request: fastapi.Request, me: str):
     return output
 
 
+@app.get("/bsky/{me}/following/handles")
+@app.get("/bsky/{me}/following/handles/")
+@limiter.limit("1/second")
+async def bsky_following_handles(request: fastapi.Request, me: str):
+    output = bsky.get_following_handles(bsky_client, me)
+    return output
+
+
 @app.get("/bsky/{me}/profile")
 @app.get("/bsky/{me}/profile/")
 @limiter.limit("1/second")
