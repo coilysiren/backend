@@ -13,8 +13,8 @@ FOLLOWS_PER_PAGE = 100  # the max
 MAX_FOLLOWS_PAGES = 10
 
 # MAX_RECC_PAGES * RECS_PER_PAGE * MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of reccomendations to list
-RECS_PER_PAGE = 5
-MAX_RECC_PAGES = 5
+RECS_PER_PAGE = 10
+MAX_RECC_PAGES = 10
 
 
 def init():

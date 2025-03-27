@@ -13,14 +13,14 @@ bsky_client = bsky.init()
 
 
 @app.get("/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def root(request: fastapi.Request):
     return ["hello world"]
 
 
 @app.get("/bsky/{me}/followers")
 @app.get("/bsky/{me}/followers/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_followers(request: fastapi.Request, me: str):
     output = bsky.get_followers(bsky_client, me)
     return output
@@ -28,7 +28,7 @@ async def bsky_followers(request: fastapi.Request, me: str):
 
 @app.get("/bsky/{me}/following")
 @app.get("/bsky/{me}/following/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_following(request: fastapi.Request, me: str):
     output = bsky.get_following(bsky_client, me)
     return output
@@ -36,7 +36,7 @@ async def bsky_following(request: fastapi.Request, me: str):
 
 @app.get("/bsky/{me}/following/handles")
 @app.get("/bsky/{me}/following/handles/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_following_handles(request: fastapi.Request, me: str):
     output = bsky.get_following_handles(bsky_client, me)
     return output
@@ -44,7 +44,7 @@ async def bsky_following_handles(request: fastapi.Request, me: str):
 
 @app.get("/bsky/{me}/profile")
 @app.get("/bsky/{me}/profile/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_profile(request: fastapi.Request, me: str):
     output = bsky.get_profile(bsky_client, me)
     return output
@@ -52,7 +52,7 @@ async def bsky_profile(request: fastapi.Request, me: str):
 
 @app.get("/bsky/{me}/mutuals")
 @app.get("/bsky/{me}/mutuals/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_mutuals(request: fastapi.Request, me: str):
     """People I follow who follow me back"""
     followers = bsky.get_followers(bsky_client, me)
@@ -63,7 +63,7 @@ async def bsky_mutuals(request: fastapi.Request, me: str):
 
 @app.get("/bsky/{me}/credibility/{them}")
 @app.get("/bsky/{me}/credibility/{them}/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_credibilty(request: fastapi.Request, me: str, them: str):
     """
     For some person I follow,
@@ -75,7 +75,7 @@ async def bsky_credibilty(request: fastapi.Request, me: str, them: str):
 
 @app.get("/bsky/{me}/credibility/{them}/percent")
 @app.get("/bsky/{me}/credibility/{them}/percent/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
     """
     For some person I follow,
@@ -89,7 +89,7 @@ async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
 
 @app.get("/bsky/{me}/recommendations")
 @app.get("/bsky/{me}/recommendations/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_recommendations(request: fastapi.Request, me: str):
     """
     For every person I follow,
@@ -105,7 +105,7 @@ async def bsky_recommendations(request: fastapi.Request, me: str):
 
 @app.get("/bsky/{me}/recommendations/{index}")
 @app.get("/bsky/{me}/recommendations/{index}/")
-@limiter.limit("1/second")
+@limiter.limit("10/second")
 async def bsky_recommendations_page(request: fastapi.Request, me: str, index: int):
     """
     For every person I follow,
