@@ -92,11 +92,31 @@ async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
 @limiter.limit("1/second")
 async def bsky_recommendations(request: fastapi.Request, me: str):
     """
-    For some person I follow,
-    show who lends 'credibility' to them in the form of a follow
+    For every person I follow,
+    list people who they follow,
+    returning the first page of a list.
     """
-    reccomendations = bsky.recommendations(bsky_client, me)
-    return reccomendations
+    (reccomendations, next_index) = bsky.recommendations(bsky_client, me, 0)
+    return {
+        "reccomendations": reccomendations,
+        "next": next_index,
+    }
+
+
+@app.get("/bsky/{me}/recommendations/{index}")
+@app.get("/bsky/{me}/recommendations/{index}/")
+@limiter.limit("1/second")
+async def bsky_recommendations_page(request: fastapi.Request, me: str, index: int):
+    """
+    For every person I follow,
+    list people who they follow,
+    returning the {index} page of a list.
+    """
+    (reccomendations, next_index) = bsky.recommendations(bsky_client, me, index)
+    return {
+        "reccomendations": reccomendations,
+        "next": next_index,
+    }
 
 
 otel_fastapi.FastAPIInstrumentor.instrument_app(app)

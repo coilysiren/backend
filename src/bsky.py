@@ -1,5 +1,6 @@
-import os
+import random
 import typing
+import os
 
 import atproto  # type: ignore
 import structlog
@@ -7,8 +8,14 @@ import structlog
 
 log = structlog.get_logger()
 cache: typing.Dict[str, typing.Any] = {}
+
+# MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of follows to list
 FOLLOWS_PER_PAGE = 100  # the max
-MAX_FOLLOWS_PAGES = 50  # this number * FOLLOWS_PER_PAGE is the max number of follows to list
+MAX_FOLLOWS_PAGES = 50
+
+# MAX_RECC_PAGES * RECS_PER_PAGE * MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of reccomendations to list
+RECS_PER_PAGE = 10
+MAX_RECC_PAGES = 10
 
 
 def init():
@@ -17,12 +24,16 @@ def init():
     return client
 
 
-def recommendations(client: atproto.Client, me: str) -> list[str]:
+def recommendations(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
     """
     For everyone that I follow,
     list who they follow that I don't follow.
     """
+    next_index = index + RECS_PER_PAGE
     my_following = get_following_handles(client, me)
+    my_following.sort()
+    my_following = my_following[index:next_index]
+
     reccomendations = []
 
     # For everyone that I follow,
@@ -38,7 +49,10 @@ def recommendations(client: atproto.Client, me: str) -> list[str]:
                 # Then add them to the reccomendations
                 reccomendations.append(thier_follow)
 
-    return reccomendations
+    # 0 out next index (indicating the we are done) if we are at the end of the list
+    next_index = next_index if next_index < RECS_PER_PAGE * MAX_RECC_PAGES else 0
+
+    return (reccomendations, next_index)
 
 
 def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
