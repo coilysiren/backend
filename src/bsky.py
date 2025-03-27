@@ -83,17 +83,7 @@ def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.
     profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = _get_or_return_cache(
         handle, "get_profile", lambda: client.get_profile(handle)
     )
-    return {
-        profile.did: {
-            "handle": profile.handle,
-            "avatar": profile.avatar,
-            "description": profile.description,
-            "display_name": profile.display_name,
-            "followers_count": profile.followers_count,
-            "follows_count": profile.follows_count,
-            "created_at": profile.created_at,
-        }
-    }
+    return {profile.did: _format_detailed_profile(profile)}
 
 
 def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
@@ -118,12 +108,25 @@ def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
     )
 
 
-def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dict[str, typing.Any]:
+def _format_detailed_profile(profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed) -> dict[str, typing.Any]:
     return {
+        "did": profile.did,
         "handle": profile.handle,
         "avatar": profile.avatar,
         "description": profile.description,
-        "display_name": profile.display_name,
+        "displayName": profile.display_name,
+        "followersCount": profile.followers_count,
+        "followsCount": profile.follows_count,
+    }
+
+
+def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dict[str, typing.Any]:
+    return {
+        "did": profile.did,
+        "handle": profile.handle,
+        "avatar": profile.avatar,
+        "description": profile.description,
+        "displayName": profile.display_name,
     }
 
 
