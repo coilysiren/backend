@@ -12,7 +12,7 @@ import starlette.middleware.base as middleware
 
 
 class TimeoutMiddleware(middleware.BaseHTTPMiddleware):
-    def __init__(self, app, timeout: int = 5):
+    def __init__(self, app, timeout):
         super().__init__(app)
         self.timeout = timeout
 
@@ -47,6 +47,7 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
     )
 
     # Timeout requests after N seconds
+    # This number doesn't seem to be reliably enforced in practice.
     app.add_middleware(TimeoutMiddleware, timeout=30)
 
     # Configure rate limiting
