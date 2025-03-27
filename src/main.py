@@ -1,4 +1,5 @@
-import atproto  # type: ignore
+import math
+
 import dotenv
 import fastapi
 import opentelemetry.instrumentation.fastapi as otel_fastapi
@@ -56,11 +57,31 @@ async def bsky_mutuals(request: fastapi.Request, handle: str):
 @app.get("/bsky/{me}/credibility/{them}/")
 @limiter.limit("1/second")
 async def bsky_credibilty(request: fastapi.Request, me: str, them: str):
-    """For some person I follow, show who lends 'credibility' to them in the form of a follow"""
+    """
+    For some person I follow,
+    show who lends 'credibility' to them in the form of a follow
+    """
     my_following = bsky.get_following(bsky_client, me)
     thier_followers = bsky.get_followers(bsky_client, them)
     lenders = {k: v for k, v in my_following.items() if k in thier_followers}
     return lenders
+
+
+@app.get("/bsky/{me}/credibility/{them}/percent")
+@app.get("/bsky/{me}/credibility/{them}/percent/")
+@limiter.limit("1/second")
+async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
+    """
+    For some person I follow,
+    show who lends 'credibility' to them in the form of a follow,
+    as of of a percent of their followers.
+    100% credibility would mean that all of their followers are people I follow.
+    """
+    my_following = bsky.get_following(bsky_client, me)
+    thier_followers = bsky.get_followers(bsky_client, them)
+    lenders = {k: v for k, v in my_following.items() if k in thier_followers}
+    percent = len(lenders) / len(thier_followers)
+    return str(round(percent * 100, 0)).split(".", maxsplit=1)[0] + "%"
 
 
 otel_fastapi.FastAPIInstrumentor.instrument_app(app)
