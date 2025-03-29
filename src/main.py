@@ -24,7 +24,7 @@ otel_resource = otel_resources.Resource.create({"service.name": "backend"})
 otel_trace_provider = otel_sdk_trace.TracerProvider(resource=otel_resource)
 otel_processor = otel_export.BatchSpanProcessor(
     otel_trace_exporter.OTLPSpanExporter(
-        endpoint="https://api.honeycomb.io",
+        endpoint="https://api.honeycomb.io/v1/traces",
         headers={
             "x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY"),
         },
