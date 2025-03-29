@@ -18,6 +18,13 @@ BSKY_PASSWORD=1234-1234-1234-1234 # this is a placeholder, create a real one her
 BSKY_USERNAME=coilysiren.me # use yours, not mine
 ```
 
+Initialize the virtualenv like so
+
+```bash
+poetry config virtualenvs.in-project true
+poetry sync
+```
+
 In one terminal, run this:
 
 ```bash

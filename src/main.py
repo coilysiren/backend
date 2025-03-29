@@ -1,9 +1,16 @@
+import inspect
 import logging
 import math
+import os
 
 import dotenv
 import fastapi
+import opentelemetry.exporter.otlp.proto.http.trace_exporter as otel_trace_exporter
 import opentelemetry.instrumentation.fastapi as otel_fastapi
+import opentelemetry.sdk.resources as otel_resources
+import opentelemetry.sdk.trace as otel_sdk_trace
+import opentelemetry.sdk.trace.export as otel_export
+import opentelemetry.trace as otel_trace
 
 from . import bsky
 from . import application
@@ -12,6 +19,20 @@ dotenv.load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
 (app, limiter) = application.init()
 bsky_client = bsky.init()
+
+otel_resource = otel_resources.Resource.create({"service.name": "backend"})
+otel_trace_provider = otel_sdk_trace.TracerProvider(resource=otel_resource)
+otel_processor = otel_export.BatchSpanProcessor(
+    otel_trace_exporter.OTLPSpanExporter(
+        endpoint="https://api.honeycomb.io",
+        headers={
+            "x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY"),
+        },
+    )
+)
+otel_trace_provider.add_span_processor(otel_processor)
+otel_trace.set_tracer_provider(otel_trace_provider)
+tracer = otel_trace.get_tracer(__name__)
 
 
 @app.get("/")
@@ -48,8 +69,9 @@ async def bsky_following_handles(request: fastapi.Request, me: str):
 @app.get("/bsky/{me}/profile/")
 @limiter.limit("10/second")
 async def bsky_profile(request: fastapi.Request, me: str):
-    output = bsky.get_profile(bsky_client, me)
-    return output
+    with tracer.start_as_current_span(inspect.stack()[0][3]) as span:
+        output = bsky.get_profile(bsky_client, me)
+        return output
 
 
 @app.get("/bsky/{me}/mutuals")

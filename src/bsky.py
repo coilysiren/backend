@@ -67,7 +67,9 @@ def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
     return percent
 
 
-def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, typing.Any]:
+def credibilty(
+    client: atproto.Client, me: str, them: str
+) -> typing.Dict[str, typing.Any]:
     """
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow
@@ -88,7 +90,9 @@ def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.
 def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in _get_or_return_cache(handle, "get_followers", lambda: _get_followers(client, handle))
+        for profile in _get_or_return_cache(
+            handle, "get_followers", lambda: _get_followers(client, handle)
+        )
     }
     return followers
 
@@ -96,18 +100,24 @@ def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typin
 def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in _get_or_return_cache(handle, "get_following", lambda: _get_following(client, handle))
+        for profile in _get_or_return_cache(
+            handle, "get_following", lambda: _get_following(client, handle)
+        )
     }
     return followers
 
 
 def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
     return _get_or_return_cache(
-        handle, "get_following_handles", lambda: [profile.handle for profile in _get_following(client, handle)]
+        handle,
+        "get_following_handles",
+        lambda: [profile.handle for profile in _get_following(client, handle)],
     )
 
 
-def _format_detailed_profile(profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed) -> dict[str, typing.Any]:
+def _format_detailed_profile(
+    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed,
+) -> dict[str, typing.Any]:
     return {
         "did": profile.did,
         "handle": profile.handle,
@@ -119,7 +129,9 @@ def _format_detailed_profile(profile: atproto.models.AppBskyActorDefs.ProfileVie
     }
 
 
-def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dict[str, typing.Any]:
+def _format_profile(
+    profile: atproto.models.AppBskyActorDefs.ProfileView,
+) -> dict[str, typing.Any]:
     return {
         "did": profile.did,
         "handle": profile.handle,
@@ -145,17 +157,23 @@ def _get_followers(
     client: atproto.Client,
     handle: str,
     cursor: str = "",
-    followers: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
+    followers: typing.Optional[
+        list[atproto.models.AppBskyActorDefs.ProfileView]
+    ] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
     followers = followers or []
 
     # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
-    response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(handle, limit=100, cursor=cursor)
+    response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(
+        handle, limit=100, cursor=cursor
+    )
     followers = followers + response.followers
     depth += 1
     if response.cursor and depth < MAX_FOLLOWS_PAGES:
-        return _get_followers(client, handle, cursor=response.cursor, followers=followers, depth=depth)
+        return _get_followers(
+            client, handle, cursor=response.cursor, followers=followers, depth=depth
+        )
     else:
         return followers or []
 
@@ -164,16 +182,22 @@ def _get_following(
     client: atproto.Client,
     handle: str,
     cursor: str = "",
-    following: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
+    following: typing.Optional[
+        list[atproto.models.AppBskyActorDefs.ProfileView]
+    ] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
     following = following or []
 
     # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
-    response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
+    response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(
+        handle, limit=100, cursor=cursor
+    )
     following = following + response.follows
     depth += 1
     if response.cursor and depth < MAX_FOLLOWS_PAGES:
-        return _get_following(client, handle, cursor=response.cursor, following=following, depth=depth)
+        return _get_following(
+            client, handle, cursor=response.cursor, following=following, depth=depth
+        )
     else:
         return following or []
