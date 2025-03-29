@@ -29,7 +29,6 @@ class Telemetry(object):
     def __new__(cls):
         if not cls.initalized:
             cls.tracer = cls.create_tracer(cls)
-            cls.meter = cls.create_meter(cls)
             cls.sentry_init(cls)
             cls.initalized = True
         return cls
