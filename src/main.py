@@ -6,7 +6,6 @@ import os
 import dotenv
 import fastapi
 import opentelemetry.exporter.otlp.proto.http.trace_exporter as otel_trace_exporter
-import opentelemetry.instrumentation.fastapi as otel_fastapi
 import opentelemetry.sdk.resources as otel_resources
 import opentelemetry.sdk.trace as otel_sdk_trace
 import opentelemetry.sdk.trace.export as otel_export

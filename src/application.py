@@ -77,6 +77,9 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
     #
     # The middleware is executed "top to bottom" on the way in,
     # and "bottom to top" on the way out.
+    #
+    # See example here:
+    # https://github.com/encode/starlette/issues/479#issuecomment-1595113897
 
     # TODO: the timeout isn't reliable because sync code can block it from being enforced.
     app.add_middleware(ErrorHandlingMiddleware, timeout=30)
