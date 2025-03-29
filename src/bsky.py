@@ -226,10 +226,10 @@ def _get_following(
     ] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
-    with telemetry.tracer.start_as_current_span("_get_followers") as span:
+    with telemetry.tracer.start_as_current_span("_get_following") as span:
         span.set_attribute("handle", handle)
         span.set_attribute("depth", depth)
-        span.set_attribute("following", len(followers) if followers else 0)
+        span.set_attribute("following", len(following) if following else 0)
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
         following = following or []
