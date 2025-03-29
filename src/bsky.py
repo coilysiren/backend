@@ -5,7 +5,7 @@ import atproto  # type: ignore
 import structlog
 
 
-log = structlog.get_logger()
+logger = structlog.get_logger()
 cache: typing.Dict[str, typing.Any] = {}
 
 # MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of follows to list
@@ -132,10 +132,10 @@ def _format_profile(profile: atproto.models.AppBskyActorDefs.ProfileView) -> dic
 def _get_or_return_cache(key: str, func_name: str, func: typing.Callable) -> typing.Any:
     key = f"{func_name}-{key}"
     if key in cache:
-        log.info("cache", adjective="hit", func_name=func_name, key=key)
+        logger.info("cache", adjective="hit", func_name=func_name, key=key)
         return cache[key]
     else:
-        log.info("cache", adjective="miss", func_name=func_name, key=key)
+        logger.info("cache", adjective="miss", func_name=func_name, key=key)
         result = func()
         cache[key] = result
         return result

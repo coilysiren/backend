@@ -1,3 +1,4 @@
+import logging
 import math
 
 import dotenv
@@ -8,6 +9,7 @@ from . import bsky
 from . import application
 
 dotenv.load_dotenv()
+logging.basicConfig(level=logging.DEBUG)
 (app, limiter) = application.init()
 bsky_client = bsky.init()
 
