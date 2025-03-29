@@ -24,6 +24,12 @@ async def root(request: fastapi.Request):
     return ["hello world"]
 
 
+@app.get("/explode")
+@app.get("/explode/")
+async def trigger_error():
+    return 1 / 0
+
+
 @app.get("/bsky/{me}/followers")
 @app.get("/bsky/{me}/followers/")
 @limiter.limit("10/second")
