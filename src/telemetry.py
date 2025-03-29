@@ -22,7 +22,6 @@ class Telemetry(object):
 
     initalized = False
     tracer: otel_trace.Tracer = None
-    meter: otel_metrics.Meter = None
     resource: otel_resources.Resource = otel_resources.Resource.create(
         {"service.name": "backend", "cloud.provider": "heroku"}
     )
@@ -49,24 +48,6 @@ class Telemetry(object):
         otel_trace.set_tracer_provider(otel_trace_provider)
         tracer = otel_trace.get_tracer(__name__)
         return tracer
-
-    def create_meter(cls):
-        dotenv.load_dotenv()
-        metric_reader = otel_metrics_export.PeriodicExportingMetricReader(
-            otel_metric_exporter.OTLPMetricExporter(
-                endpoint="https://api.honeycomb.io/v1/metrics",
-                headers={
-                    "x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY"),
-                },
-            )
-        )
-        meter_provider = otel_sdk_metrics.MeterProvider(
-            resource=cls.resource,
-            metric_readers=[metric_reader],
-        )
-        otel_metrics.set_meter_provider(meter_provider)
-        meter = otel_metrics.get_meter(__name__)
-        return meter
 
     def sentry_init(cls):
         # Init a real version of the sentry client, just to make sure its working.
