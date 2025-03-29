@@ -7,4 +7,4 @@ opentelemetry-instrument \
   --exporter_otlp_headers "$OTEL_EXPORTER_OTLP_HEADERS" \
   --exporter_otlp_protocol "http/protobuf" \
   --service_name "backend" \
-  uvicorn src.main:app --host=0.0.0.0 --port "$PORT"
+  uvicorn src.main:app --host 0.0.0.0 --port "$PORT"
