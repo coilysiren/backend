@@ -16,6 +16,7 @@ Create .env file with the following contents
 ```bash
 BSKY_PASSWORD=1234-1234-1234-1234 # this is a placeholder, create a real one here: https://bsky.app/settings/app-passwords
 BSKY_USERNAME=coilysiren.me # use yours, not mine
+OTEL_SDK_DISABLED=true
 ```
 
 Initialize the virtualenv like so

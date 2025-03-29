@@ -16,23 +16,8 @@ from . import bsky
 from . import application
 
 dotenv.load_dotenv()
-logging.basicConfig(level=logging.DEBUG)
 (app, limiter) = application.init()
 bsky_client = bsky.init()
-
-otel_resource = otel_resources.Resource.create({"service.name": "backend"})
-otel_trace_provider = otel_sdk_trace.TracerProvider(resource=otel_resource)
-otel_processor = otel_export.BatchSpanProcessor(
-    otel_trace_exporter.OTLPSpanExporter(
-        endpoint="https://api.honeycomb.io/v1/traces",
-        headers={
-            "x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY"),
-        },
-    )
-)
-otel_trace_provider.add_span_processor(otel_processor)
-otel_trace.set_tracer_provider(otel_trace_provider)
-tracer = otel_trace.get_tracer(__name__)
 
 
 @app.get("/")
@@ -69,9 +54,8 @@ async def bsky_following_handles(request: fastapi.Request, me: str):
 @app.get("/bsky/{me}/profile/")
 @limiter.limit("10/second")
 async def bsky_profile(request: fastapi.Request, me: str):
-    with tracer.start_as_current_span(inspect.stack()[0][3]) as span:
-        output = bsky.get_profile(bsky_client, me)
-        return output
+    output = bsky.get_profile(bsky_client, me)
+    return output
 
 
 @app.get("/bsky/{me}/mutuals")
@@ -141,6 +125,3 @@ async def bsky_recommendations_page(request: fastapi.Request, me: str, index: in
         "reccomendations": reccomendations,
         "next": next_index,
     }
-
-
-otel_fastapi.FastAPIInstrumentor.instrument_app(app)

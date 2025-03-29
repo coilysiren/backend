@@ -4,7 +4,10 @@ import os
 import atproto  # type: ignore
 import structlog
 
+from . import telemetry
 
+
+telemetry = telemetry.Telemetry()
 logger = structlog.get_logger()
 cache: typing.Dict[str, typing.Any] = {}
 
@@ -142,15 +145,16 @@ def _format_profile(
 
 
 def _get_or_return_cache(key: str, func_name: str, func: typing.Callable) -> typing.Any:
-    key = f"{func_name}-{key}"
-    if key in cache:
-        logger.info("cache", adjective="hit", func_name=func_name, key=key)
-        return cache[key]
-    else:
-        logger.info("cache", adjective="miss", func_name=func_name, key=key)
-        result = func()
-        cache[key] = result
-        return result
+    with telemetry.tracer.start_as_current_span("cache") as span:
+        key = f"{func_name}-{key}"
+        if key in cache:
+            logger.info("cache", adjective="hit", func_name=func_name, key=key)
+            return cache[key]
+        else:
+            logger.info("cache", adjective="miss", func_name=func_name, key=key)
+            result = func()
+            cache[key] = result
+            return result
 
 
 def _get_followers(
