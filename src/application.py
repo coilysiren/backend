@@ -4,13 +4,13 @@ import os
 import fastapi
 import fastapi.middleware.cors as cors
 import fastapi.middleware.trustedhost as trustedhost
+import sentry_sdk
 import slowapi
 import slowapi.errors
 import slowapi.util
 import starlette.middleware.base as middleware
 import starlette.requests
 import starlette.responses
-import sentry_sdk
 import structlog
 
 from . import telemetry

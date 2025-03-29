@@ -84,7 +84,7 @@ def credibilty(
 
 def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = _get_or_return_cache(
-        handle, "get_profile", lambda: client.get_profile(handle)
+        handle, "get_profile", lambda: _get_profile(client, handle)
     )
     return {profile.did: _format_detailed_profile(profile)}
 
@@ -143,17 +143,49 @@ def _format_profile(
     }
 
 
-def _get_or_return_cache(key: str, func_name: str, func: typing.Callable) -> typing.Any:
+#########################
+# CODE FORMATTING RULES #
+#########################
+
+# Every function past this point should:
+#   1. be doing something that takes a nontrivial amount of time (like making a network request)
+#   2. start a span, with its function inputs as attributes.
+#   3. should be cached inside of the functions calling them (except the cache itself, obviously)
+
+
+def _get_or_return_cache(
+    suffix: str, func_name: str, func: typing.Callable
+) -> typing.Any:
+    key = f"{func_name}-{suffix}"
     with telemetry.tracer.start_as_current_span("cache") as span:
-        key = f"{func_name}-{key}"
+        span.set_attribute("key", key)
+        span.set_attribute("func_name", func_name)
+        span.set_attribute("suffix", suffix)
+
         if key in cache:
+            span.set_attribute("adjective", "hit")
             logger.info("cache", adjective="hit", func_name=func_name, key=key)
             return cache[key]
         else:
+            span.set_attribute("adjective", "miss")
             logger.info("cache", adjective="miss", func_name=func_name, key=key)
             result = func()
             cache[key] = result
             return result
+
+
+def _get_profile(
+    client: atproto.Client,
+    handle: str,
+) -> atproto.models.AppBskyActorDefs.ProfileViewDetailed:
+    with telemetry.tracer.start_as_current_span("_get_profile") as span:
+        span.set_attribute("handle", handle)
+
+        # https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
+        response: atproto.models.AppBskyActorDefs.ProfileViewDetailed = (
+            client.get_profile(handle)
+        )
+        return response
 
 
 def _get_followers(
@@ -165,20 +197,24 @@ def _get_followers(
     ] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
-    followers = followers or []
+    with telemetry.tracer.start_as_current_span("_get_followers") as span:
+        span.set_attribute("handle", handle)
+        span.set_attribute("depth", depth)
+        span.set_attribute("followers", len(followers) if followers else 0)
 
-    # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
-    response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(
-        handle, limit=100, cursor=cursor
-    )
-    followers = followers + response.followers
-    depth += 1
-    if response.cursor and depth < MAX_FOLLOWS_PAGES:
-        return _get_followers(
-            client, handle, cursor=response.cursor, followers=followers, depth=depth
+        # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
+        followers = followers or []
+        response: atproto.models.AppBskyGraphGetFollowers.Response = (
+            client.get_followers(handle, limit=100, cursor=cursor)
         )
-    else:
-        return followers or []
+        followers = followers + response.followers
+        depth += 1
+        if response.cursor and depth < MAX_FOLLOWS_PAGES:
+            return _get_followers(
+                client, handle, cursor=response.cursor, followers=followers, depth=depth
+            )
+        else:
+            return followers or []
 
 
 def _get_following(
@@ -190,17 +226,21 @@ def _get_following(
     ] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
-    following = following or []
+    with telemetry.tracer.start_as_current_span("_get_followers") as span:
+        span.set_attribute("handle", handle)
+        span.set_attribute("depth", depth)
+        span.set_attribute("following", len(followers) if followers else 0)
 
-    # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
-    response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(
-        handle, limit=100, cursor=cursor
-    )
-    following = following + response.follows
-    depth += 1
-    if response.cursor and depth < MAX_FOLLOWS_PAGES:
-        return _get_following(
-            client, handle, cursor=response.cursor, following=following, depth=depth
+        # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
+        following = following or []
+        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(
+            handle, limit=100, cursor=cursor
         )
-    else:
-        return following or []
+        following = following + response.follows
+        depth += 1
+        if response.cursor and depth < MAX_FOLLOWS_PAGES:
+            return _get_following(
+                client, handle, cursor=response.cursor, following=following, depth=depth
+            )
+        else:
+            return following or []

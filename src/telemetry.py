@@ -11,8 +11,8 @@ import opentelemetry.sdk.trace as otel_sdk_trace
 import opentelemetry.sdk.trace.export as otel_export
 import opentelemetry.trace as otel_trace
 import sentry_sdk
-import sentry_sdk.integrations.starlette as sentry_starlette
 import sentry_sdk.integrations.fastapi as sentry_fastapi
+import sentry_sdk.integrations.starlette as sentry_starlette
 
 dotenv.load_dotenv()
 
