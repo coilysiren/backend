@@ -11,7 +11,8 @@ import opentelemetry.sdk.trace as otel_sdk_trace
 import opentelemetry.sdk.trace.export as otel_export
 import opentelemetry.trace as otel_trace
 import sentry_sdk
-
+import sentry_sdk.integrations.starlette as sentry_starlette
+import sentry_sdk.integrations.fastapi as sentry_fastapi
 
 dotenv.load_dotenv()
 
@@ -68,11 +69,14 @@ class Telemetry(object):
         return meter
 
     def sentry_init(cls):
-        if os.getenv("PRODUCTION", "").lower().strip() == "true":
-            sentry_sdk.init(
-                dsn=os.getenv("SENTRY_DSN"),
-                integrations=[
-                    StarletteIntegration(),
-                    FastApiIntegration(),
-                ],
-            )
+        # Init a real version of the sentry client, just to make sure its working.
+        sentry_sdk.init(
+            dsn=os.getenv("SENTRY_DSN"),
+            integrations=[
+                sentry_starlette.StarletteIntegration(),
+                sentry_fastapi.FastApiIntegration(),
+            ],
+        )
+        # Init a fake (empty) version of the sentry client, to avoid sending data locally.
+        if os.getenv("PRODUCTION", "").lower().strip() != "true":
+            sentry_sdk.init()
