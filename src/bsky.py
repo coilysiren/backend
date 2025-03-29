@@ -1,11 +1,10 @@
-import typing
 import os
+import typing
 
 import atproto  # type: ignore
 import structlog
 
 from . import telemetry
-
 
 telemetry = telemetry.Telemetry()
 logger = structlog.get_logger()

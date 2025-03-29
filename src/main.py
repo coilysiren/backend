@@ -12,8 +12,7 @@ import opentelemetry.sdk.trace as otel_sdk_trace
 import opentelemetry.sdk.trace.export as otel_export
 import opentelemetry.trace as otel_trace
 
-from . import bsky
-from . import application
+from . import application, bsky
 
 dotenv.load_dotenv()
 (app, limiter) = application.init()

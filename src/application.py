@@ -8,13 +8,15 @@ import slowapi
 import slowapi.errors
 import slowapi.util
 import starlette.middleware.base as middleware
-import starlette.responses
 import starlette.requests
+import starlette.responses
+import sentry_sdk
+import structlog
 
 from . import telemetry
 
-
 telemetry = telemetry.Telemetry()
+logger = structlog.get_logger()
 
 
 class OpenTelemetryMiddleware(middleware.BaseHTTPMiddleware):
@@ -48,12 +50,15 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
     ) -> starlette.responses.Response:
         try:
             return await asyncio.wait_for(call_next(request), timeout=self.timeout)
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as exc:
+            logger.error("Unhandled exception", exc=exc, status_code=408)
+            sentry_sdk.capture_exception(exc)
             return starlette.responses.JSONResponse(
                 {"detail": "Request timed out"}, status_code=408
             )
         except Exception as exc:
-            # Log the exception here if needed
+            logger.error("Unhandled exception", exc=exc, status_code=500)
+            sentry_sdk.capture_exception(exc)
             return starlette.responses.JSONResponse(
                 {"detail": "Internal Server Error", "error": str(exc)},
                 status_code=500,
