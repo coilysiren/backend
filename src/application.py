@@ -87,15 +87,18 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
     app.add_middleware(OpenTelemetryMiddleware)
 
     # Allow requests to come in from specific places (part 1)
-    if os.getenv("PRODUCTION", "").lower().strip() == "true":
-        app.add_middleware(
-            cors.CORSMiddleware,
-            allow_origins=[
+    app.add_middleware(
+        cors.CORSMiddleware,
+        allow_origins=(
+            [
                 "https://coilysiren.me",
                 "https://www.coilysiren.me",
                 "https://api.coilysiren.me",
-            ],
-        )
+            ]
+            if os.getenv("PRODUCTION", "").lower().strip() == "true"
+            else ["*"]
+        ),
+    )
 
     # Allow requests to come in from specific places (part 2)
     if os.getenv("PRODUCTION", "").lower().strip() == "true":
