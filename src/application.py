@@ -2,6 +2,7 @@ import asyncio
 import os
 
 import atproto_client.exceptions
+import atproto_client.models.common as atproto_models
 import fastapi
 import fastapi.middleware.cors as cors
 import fastapi.middleware.trustedhost as trustedhost
@@ -61,25 +62,44 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
             try:
                 return await asyncio.wait_for(call_next(request), timeout=self.timeout)
 
-            # atproto can return specific errors that we want to handle gracefully
+            # Atproto can return specific errors that we want to handle gracefully.
+            # These error types were enumerated by looking at the type annotations.
             except atproto_client.exceptions.RequestErrorBase as exc:
                 self._capture_exception(span, exc)
 
                 response = exc.response
                 if response is None:
-                    logger.error("generic atproto error", exc=exc)
+                    message = "generic atproto error"
+                    logger.error(message, exc=exc, status_code=500)
                     return starlette.responses.JSONResponse(
-                        {"detail": "generic atproto error"},
+                        {"detail": message},
                         status_code=500,
                     )
-                else:
+
+                elif type(response.content) is atproto_models.XrpcError:
+                    message = "generic xrpcerror error"
                     logger.error(
-                        "atproto error",
+                        message,
                         exc=exc,
                         status_code=response.status_code,
                     )
                     return starlette.responses.JSONResponse(
-                        {"detail": "atproto error", "error": str(exc)},
+                        {
+                            "detail": message,
+                            "error": response.content.message,
+                        },
+                        status_code=response.status_code,
+                    )
+
+                else:
+                    message = "generic atproto error"
+                    logger.info(
+                        message,
+                        exc=exc,
+                        status_code=response.status_code,
+                    )
+                    return starlette.responses.JSONResponse(
+                        {"detail": message, "error": str(response.content)},
                         status_code=response.status_code,
                     )
 
@@ -87,18 +107,20 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
             except asyncio.TimeoutError as exc:
                 self._capture_exception(exc)
 
-                logger.error("Request timed out", exc=exc, status_code=408)
+                message = "request timed out"
+                logger.error(message, exc=exc, status_code=408)
                 return starlette.responses.JSONResponse(
-                    {"detail": "Request timed out"}, status_code=408
+                    {"detail": message}, status_code=408
                 )
 
             # handle other exceptions that may occur during request processing
             except Exception as exc:
                 self._capture_exception(exc)
 
-                logger.error("Internal Server Error", exc=exc, status_code=500)
+                message = "internal server error"
+                logger.error(message, exc=exc, status_code=500)
                 return starlette.responses.JSONResponse(
-                    {"detail": "Internal Server Error", "error": str(exc)},
+                    {"detail": message, "error": str(exc)},
                     status_code=500,
                 )
 
