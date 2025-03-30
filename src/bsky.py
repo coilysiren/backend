@@ -15,9 +15,8 @@ cache: typing.Dict[str, typing.Any] = {}
 FOLLOWS_PER_PAGE = 100  # the max
 MAX_FOLLOWS_PAGES = 10
 
-# MAX_RECC_PAGES * RECS_PER_PAGE * MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of suggestions to list
-RECS_PER_PAGE = 10
-MAX_RECC_PAGES = 10
+SUGGESTIONS_PER_PAGE = 10
+MAX_SUGGESTION_PAGES = 10
 
 
 def init():
@@ -31,28 +30,37 @@ def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], in
     For everyone that I follow,
     list who they follow that I don't follow.
     """
-    next_index = index + RECS_PER_PAGE
+    next_index = index + SUGGESTIONS_PER_PAGE
     my_following = get_following_handles(client, me)
     my_following.sort()
-    my_following = my_following[index:next_index]
+    my_following_to_check = my_following[index:next_index]
 
     suggestions = []
 
     # For everyone that I follow,
-    for my_follow in my_following:
+    for my_follow in my_following_to_check:
 
         # List of who they follow
         following = get_following_handles(client, my_follow)
 
         # And remove the people I follow
         for thier_follow in following:
-            if thier_follow not in my_following:
+            thier_follow.strip().lower()
+            if (
+                thier_follow
+                and thier_follow is not me
+                and thier_follow not in my_following
+                and thier_follow != "handle.invalid"
+                and thier_follow != "bsky.app"
+            ):
 
                 # Then add them to the suggestions
                 suggestions.append(thier_follow)
 
     # return -1 next index (indicating the we are done) if we are at the end of the list
-    next_index = next_index if next_index < RECS_PER_PAGE * MAX_RECC_PAGES else -1
+    next_index = (
+        next_index if next_index < SUGGESTIONS_PER_PAGE * MAX_SUGGESTION_PAGES else -1
+    )
 
     return (suggestions, next_index)
 
