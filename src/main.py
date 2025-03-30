@@ -108,6 +108,39 @@ async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
     return percent
 
 
+@app.get("/bsky/{handle}/popularity")
+@app.get("/bsky/{handle}/popularity/")
+async def bluesky_popularity(request: fastapi.Request, handle: str):
+    """
+    For every person I follow,
+    list people who they follow,
+    and aggregate that list to see how popular each person is.
+    """
+    handle = bsky.handle_scrubber(handle)
+    (popularity, next_index) = bsky.popularity(bsky_client, handle, 0)
+    return {
+        "popularity": popularity,
+        "next": next_index,
+    }
+
+
+@app.get("/bsky/{handle}/popularity/{index}")
+@app.get("/bsky/{handle}/popularity/{index}/")
+async def bluesky_popularity_page(request: fastapi.Request, handle: str, index: int):
+    """
+    For every person I follow,
+    list people who they follow,
+    and aggregate that list to see how popular each person is.
+    This returns the {index} page of the popularity list.
+    """
+    handle = bsky.handle_scrubber(handle)
+    (popularity, next_index) = bsky.popularity(bsky_client, handle, index)
+    return {
+        "popularity": popularity,
+        "next": next_index,
+    }
+
+
 @app.get("/bsky/{handle}/suggestions")
 @app.get("/bsky/{handle}/suggestions/")
 @limiter.limit("10/second")

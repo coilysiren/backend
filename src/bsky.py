@@ -13,10 +13,13 @@ cache: typing.Dict[str, typing.Any] = {}
 
 # MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of follows to list
 FOLLOWS_PER_PAGE = 100  # the max
-MAX_FOLLOWS_PAGES = 10
+MAX_FOLLOWS_PAGES = 25
 
 SUGGESTIONS_PER_PAGE = 10
 MAX_SUGGESTION_PAGES = 10
+
+POPULARITY_PER_PAGE = 50
+MAX_POPULARITY_PAGES = 50
 
 
 def init():
@@ -36,6 +39,46 @@ def handle_scrubber(handle: str) -> str:
     # Use regex to filter allowed characters
     sanitized_handle = re.sub(r"[^a-zA-Z0-9._-]", "", handle)
     return sanitized_handle.strip().lower()
+
+
+def popularity(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
+    """
+    For every person I follow,
+    list people who they follow,
+    and aggregate that list to see how popular each person is.
+    """
+    next_index = index + POPULARITY_PER_PAGE
+    my_following = get_following_handles(client, me)
+    my_following.sort()
+    my_following_to_check = my_following[index:next_index]
+
+    popularity = {}
+
+    # For everyone that I follow,
+    for my_follow in my_following_to_check:
+
+        # List of who they follow
+        following = get_following_handles(client, my_follow)
+
+        # And remove the people I follow
+        for thier_follow in following:
+            thier_follow.strip().lower()
+            if (
+                thier_follow
+                and thier_follow != "handle.invalid"
+                and thier_follow != "bsky.app"
+            ):
+                if popularity.get(thier_follow) is None:
+                    popularity[thier_follow] = 1
+                else:
+                    popularity[thier_follow] += 1
+
+    # return -1 next index (indicating the we are done) if we are at the end of the list
+    next_index = (
+        next_index if next_index < POPULARITY_PER_PAGE * MAX_POPULARITY_PAGES else -1
+    )
+
+    return (popularity, next_index)
 
 
 def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
