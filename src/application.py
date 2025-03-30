@@ -69,7 +69,7 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
 
                 response = exc.response
                 if response is None:
-                    message = "generic atproto error"
+                    message = "unknown atproto error"
                     logger.error(message, exc=exc, status_code=500)
                     return starlette.responses.JSONResponse(
                         {"detail": message},
