@@ -1,8 +1,8 @@
 import os
+import re
 import typing
 
 import atproto  # type: ignore
-import atproto_client.exceptions
 import structlog
 
 from . import telemetry
@@ -23,6 +23,19 @@ def init():
     client = atproto.Client("https://bsky.social")
     client.login(login=os.getenv("BSKY_USERNAME"), password=os.getenv("BSKY_PASSWORD"))
     return client
+
+
+def handle_scrubber(handle: str) -> str:
+    # allow the following characters:
+    # 1. a - z (lowercase or uppercase)
+    # 2. 0 - 9 (numbers)
+    # 3. . (period)
+    # 4. _ (underscore)
+    # 5. - (dash)
+    # remove any characters that do not match the above rules
+    # Use regex to filter allowed characters
+    sanitized_handle = re.sub(r"[^a-zA-Z0-9._-]", "", handle)
+    return sanitized_handle.strip().lower()
 
 
 def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:

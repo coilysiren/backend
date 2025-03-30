@@ -6,6 +6,7 @@ import atproto_client.models.common as atproto_models
 import fastapi
 import fastapi.middleware.cors as cors
 import fastapi.middleware.trustedhost as trustedhost
+import opentelemetry.trace as otel_trace
 import sentry_sdk
 import slowapi
 import slowapi.errors
@@ -14,7 +15,6 @@ import starlette.middleware.base as middleware
 import starlette.requests
 import starlette.responses
 import structlog
-import opentelemetry.trace as otel_trace
 
 from . import telemetry
 

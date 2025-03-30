@@ -31,45 +31,50 @@ async def trigger_error():
     return 1 / 0
 
 
-@app.get("/bsky/{me}/followers")
-@app.get("/bsky/{me}/followers/")
+@app.get("/bsky/{handle}/followers")
+@app.get("/bsky/{handle}/followers/")
 @limiter.limit("10/second")
-async def bsky_followers(request: fastapi.Request, me: str):
-    output = bsky.get_followers(bsky_client, me)
+async def bsky_followers(request: fastapi.Request, handle: str):
+    handle = bsky.handle_scrubber(handle)
+    output = bsky.get_followers(bsky_client, handle)
     return output
 
 
-@app.get("/bsky/{me}/following")
-@app.get("/bsky/{me}/following/")
+@app.get("/bsky/{handle}/following")
+@app.get("/bsky/{handle}/following/")
 @limiter.limit("10/second")
-async def bsky_following(request: fastapi.Request, me: str):
-    output = bsky.get_following(bsky_client, me)
+async def bsky_following(request: fastapi.Request, handle: str):
+    handle = bsky.handle_scrubber(handle)
+    output = bsky.get_following(bsky_client, handle)
     return output
 
 
-@app.get("/bsky/{me}/following/handles")
-@app.get("/bsky/{me}/following/handles/")
+@app.get("/bsky/{handle}/following/handles")
+@app.get("/bsky/{handle}/following/handles/")
 @limiter.limit("10/second")
-async def bsky_following_handles(request: fastapi.Request, me: str):
-    output = bsky.get_following_handles(bsky_client, me)
+async def bsky_following_handles(request: fastapi.Request, handle: str):
+    handle = bsky.handle_scrubber(handle)
+    output = bsky.get_following_handles(bsky_client, handle)
     return output
 
 
-@app.get("/bsky/{me}/profile")
-@app.get("/bsky/{me}/profile/")
+@app.get("/bsky/{handle}/profile")
+@app.get("/bsky/{handle}/profile/")
 @limiter.limit("10/second")
-async def bsky_profile(request: fastapi.Request, me: str):
-    output = bsky.get_profile(bsky_client, me)
+async def bsky_profile(request: fastapi.Request, handle: str):
+    handle = bsky.handle_scrubber(handle)
+    output = bsky.get_profile(bsky_client, handle)
     return output
 
 
-@app.get("/bsky/{me}/mutuals")
-@app.get("/bsky/{me}/mutuals/")
+@app.get("/bsky/{handle}/mutuals")
+@app.get("/bsky/{handle}/mutuals/")
 @limiter.limit("10/second")
-async def bsky_mutuals(request: fastapi.Request, me: str):
+async def bsky_mutuals(request: fastapi.Request, handle: str):
     """People I follow who follow me back"""
-    followers = bsky.get_followers(bsky_client, me)
-    following = bsky.get_following(bsky_client, me)
+    handle = bsky.handle_scrubber(handle)
+    followers = bsky.get_followers(bsky_client, handle)
+    following = bsky.get_following(bsky_client, handle)
     mutuals = {k: v for k, v in followers.items() if k in following}
     return mutuals
 
@@ -82,6 +87,7 @@ async def bsky_credibilty(request: fastapi.Request, me: str, them: str):
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow
     """
+    handle = bsky.handle_scrubber(handle)
     lenders = bsky.credibilty(bsky_client, me, them)
     return lenders
 
@@ -96,36 +102,40 @@ async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
     as of of a percent of their followers.
     1 credibility would mean that all of their followers are people I follow.
     """
+    me = bsky.handle_scrubber(me)
+    them = bsky.handle_scrubber(them)
     percent = bsky.credibilty_percent(bsky_client, me, them)
     return percent
 
 
-@app.get("/bsky/{me}/suggestions")
-@app.get("/bsky/{me}/suggestions/")
+@app.get("/bsky/{handle}/suggestions")
+@app.get("/bsky/{handle}/suggestions/")
 @limiter.limit("10/second")
-async def bsky_suggestions(request: fastapi.Request, me: str):
+async def bsky_suggestions(request: fastapi.Request, handle: str):
     """
     For every person I follow,
     list people who they follow,
     returning the first page of a list.
     """
-    (suggestions, next_index) = bsky.suggestions(bsky_client, me, 0)
+    handle = bsky.handle_scrubber(handle)
+    (suggestions, next_index) = bsky.suggestions(bsky_client, handle, 0)
     return {
         "suggestions": suggestions,
         "next": next_index,
     }
 
 
-@app.get("/bsky/{me}/suggestions/{index}")
-@app.get("/bsky/{me}/suggestions/{index}/")
+@app.get("/bsky/{handle}/suggestions/{index}")
+@app.get("/bsky/{handle}/suggestions/{index}/")
 @limiter.limit("10/second")
-async def bsky_suggestions_page(request: fastapi.Request, me: str, index: int):
+async def bsky_suggestions_page(request: fastapi.Request, handle: str, index: int):
     """
     For every person I follow,
     list people who they follow,
     returning the {index} page of a list.
     """
-    (suggestions, next_index) = bsky.suggestions(bsky_client, me, index)
+    handle = bsky.handle_scrubber(handle)
+    (suggestions, next_index) = bsky.suggestions(bsky_client, handle, index)
     return {
         "suggestions": suggestions,
         "next": next_index,
