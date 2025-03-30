@@ -1,6 +1,7 @@
 import asyncio
 import os
 
+import atproto_client.exceptions
 import fastapi
 import fastapi.middleware.cors as cors
 import fastapi.middleware.trustedhost as trustedhost
@@ -12,6 +13,7 @@ import starlette.middleware.base as middleware
 import starlette.requests
 import starlette.responses
 import structlog
+import opentelemetry.trace as otel_trace
 
 from . import telemetry
 
@@ -30,7 +32,7 @@ class OpenTelemetryMiddleware(middleware.BaseHTTPMiddleware):
         request: starlette.requests.Request,
         call_next: middleware.RequestResponseEndpoint,
     ) -> starlette.responses.Response:
-        with telemetry.tracer.start_as_current_span("http_request") as span:
+        with telemetry.tracer.start_as_current_span("OpenTelemetryMiddleware") as span:
             return await call_next(request)
 
 
@@ -43,26 +45,62 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
         super().__init__(app)
         self.timeout = timeout
 
+    def _capture_exception(self, span: otel_trace.Span, exc: Exception) -> None:
+        sentry_sdk.capture_exception(exc)
+        span.set_status(otel_trace.StatusCode.ERROR, str(exc))
+        span.set_attribute("exception.type", type(exc).__name__)
+        span.set_attribute("exception.message", str(exc))
+        span.record_exception(exc)
+
     async def dispatch(
         self,
         request: starlette.requests.Request,
         call_next: middleware.RequestResponseEndpoint,
     ) -> starlette.responses.Response:
-        try:
-            return await asyncio.wait_for(call_next(request), timeout=self.timeout)
-        except asyncio.TimeoutError as exc:
-            logger.error("Unhandled exception", exc=exc, status_code=408)
-            sentry_sdk.capture_exception(exc)
-            return starlette.responses.JSONResponse(
-                {"detail": "Request timed out"}, status_code=408
-            )
-        except Exception as exc:
-            logger.error("Unhandled exception", exc=exc, status_code=500)
-            sentry_sdk.capture_exception(exc)
-            return starlette.responses.JSONResponse(
-                {"detail": "Internal Server Error", "error": str(exc)},
-                status_code=500,
-            )
+        with telemetry.tracer.start_as_current_span("ErrorHandlingMiddleware") as span:
+            try:
+                return await asyncio.wait_for(call_next(request), timeout=self.timeout)
+
+            # atproto can return specific errors that we want to handle gracefully
+            except atproto_client.exceptions.RequestErrorBase as exc:
+                self._capture_exception(span, exc)
+
+                response = exc.response
+                if response is None:
+                    logger.error("generic atproto error", exc=exc)
+                    return starlette.responses.JSONResponse(
+                        {"detail": "generic atproto error"},
+                        status_code=500,
+                    )
+                else:
+                    logger.error(
+                        "atproto error",
+                        exc=exc,
+                        status_code=response.status_code,
+                    )
+                    return starlette.responses.JSONResponse(
+                        {"detail": "atproto error", "error": str(exc)},
+                        status_code=response.status_code,
+                    )
+
+            # handle any kind of timeout errors, note that we enforce the timeouts
+            except asyncio.TimeoutError as exc:
+                self._capture_exception(exc)
+
+                logger.error("Request timed out", exc=exc, status_code=408)
+                return starlette.responses.JSONResponse(
+                    {"detail": "Request timed out"}, status_code=408
+                )
+
+            # handle other exceptions that may occur during request processing
+            except Exception as exc:
+                self._capture_exception(exc)
+
+                logger.error("Internal Server Error", exc=exc, status_code=500)
+                return starlette.responses.JSONResponse(
+                    {"detail": "Internal Server Error", "error": str(exc)},
+                    status_code=500,
+                )
 
 
 def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:

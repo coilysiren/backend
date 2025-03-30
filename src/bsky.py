@@ -2,6 +2,7 @@ import os
 import typing
 
 import atproto  # type: ignore
+import atproto_client.exceptions
 import structlog
 
 from . import telemetry
@@ -14,7 +15,7 @@ cache: typing.Dict[str, typing.Any] = {}
 FOLLOWS_PER_PAGE = 100  # the max
 MAX_FOLLOWS_PAGES = 10
 
-# MAX_RECC_PAGES * RECS_PER_PAGE * MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of reccomendations to list
+# MAX_RECC_PAGES * RECS_PER_PAGE * MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of suggestions to list
 RECS_PER_PAGE = 10
 MAX_RECC_PAGES = 10
 
@@ -25,7 +26,7 @@ def init():
     return client
 
 
-def recommendations(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
+def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
     """
     For everyone that I follow,
     list who they follow that I don't follow.
@@ -35,7 +36,7 @@ def recommendations(client: atproto.Client, me: str, index=0) -> tuple[list[str]
     my_following.sort()
     my_following = my_following[index:next_index]
 
-    reccomendations = []
+    suggestions = []
 
     # For everyone that I follow,
     for my_follow in my_following:
@@ -47,13 +48,13 @@ def recommendations(client: atproto.Client, me: str, index=0) -> tuple[list[str]
         for thier_follow in following:
             if thier_follow not in my_following:
 
-                # Then add them to the reccomendations
-                reccomendations.append(thier_follow)
+                # Then add them to the suggestions
+                suggestions.append(thier_follow)
 
     # return -1 next index (indicating the we are done) if we are at the end of the list
     next_index = next_index if next_index < RECS_PER_PAGE * MAX_RECC_PAGES else -1
 
-    return (reccomendations, next_index)
+    return (suggestions, next_index)
 
 
 def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
@@ -157,7 +158,7 @@ def _get_or_return_cache(
     suffix: str, func_name: str, func: typing.Callable
 ) -> typing.Any:
     key = f"{func_name}-{suffix}"
-    with telemetry.tracer.start_as_current_span("cache") as span:
+    with telemetry.tracer.start_as_current_span("_get_or_return_cache") as span:
         span.set_attribute("key", key)
         span.set_attribute("func_name", func_name)
         span.set_attribute("suffix", suffix)

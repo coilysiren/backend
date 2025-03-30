@@ -100,34 +100,34 @@ async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
     return percent
 
 
-@app.get("/bsky/{me}/recommendations")
-@app.get("/bsky/{me}/recommendations/")
+@app.get("/bsky/{me}/suggestions")
+@app.get("/bsky/{me}/suggestions/")
 @limiter.limit("10/second")
-async def bsky_recommendations(request: fastapi.Request, me: str):
+async def bsky_suggestions(request: fastapi.Request, me: str):
     """
     For every person I follow,
     list people who they follow,
     returning the first page of a list.
     """
-    (reccomendations, next_index) = bsky.recommendations(bsky_client, me, 0)
+    (suggestions, next_index) = bsky.suggestions(bsky_client, me, 0)
     return {
-        "reccomendations": reccomendations,
+        "suggestions": suggestions,
         "next": next_index,
     }
 
 
-@app.get("/bsky/{me}/recommendations/{index}")
-@app.get("/bsky/{me}/recommendations/{index}/")
+@app.get("/bsky/{me}/suggestions/{index}")
+@app.get("/bsky/{me}/suggestions/{index}/")
 @limiter.limit("10/second")
-async def bsky_recommendations_page(request: fastapi.Request, me: str, index: int):
+async def bsky_suggestions_page(request: fastapi.Request, me: str, index: int):
     """
     For every person I follow,
     list people who they follow,
     returning the {index} page of a list.
     """
-    (reccomendations, next_index) = bsky.recommendations(bsky_client, me, index)
+    (suggestions, next_index) = bsky.suggestions(bsky_client, me, index)
     return {
-        "reccomendations": reccomendations,
+        "suggestions": suggestions,
         "next": next_index,
     }
 
