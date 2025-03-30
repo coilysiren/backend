@@ -34,7 +34,19 @@ class OpenTelemetryMiddleware(middleware.BaseHTTPMiddleware):
         call_next: middleware.RequestResponseEndpoint,
     ) -> starlette.responses.Response:
         with telemetry.tracer.start_as_current_span("OpenTelemetryMiddleware") as span:
-            return await call_next(request)
+            span.set_attribute("http.method", request.method)
+            span.set_attribute("http.url", str(request.url))
+            span.set_attribute("http.request.path", request.url.path)
+
+            for key, value in request.query_params.items():
+                span.set_attribute(f"http.request.query.{key}", value)
+
+            for key, value in request.path_params.items():
+                span.set_attribute(f"http.request.path.{key}", value)
+
+            response = await call_next(request)
+            span.set_attribute("http.status_code", response.status_code)
+            return response
 
 
 class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
