@@ -105,7 +105,7 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
 
             # handle any kind of timeout errors, note that we enforce the timeouts
             except asyncio.TimeoutError as exc:
-                self._capture_exception(exc)
+                self._capture_exception(span, exc)
 
                 message = "request timed out"
                 logger.error(message, exc=exc, status_code=408)
@@ -115,7 +115,7 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
 
             # handle other exceptions that may occur during request processing
             except Exception as exc:
-                self._capture_exception(exc)
+                self._capture_exception(span, exc)
 
                 message = "internal server error"
                 logger.error(message, exc=exc, status_code=500)
@@ -141,7 +141,6 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
     # See example here:
     # https://github.com/encode/starlette/issues/479#issuecomment-1595113897
 
-    # TODO: the timeout isn't reliable because sync code can block it from being enforced.
     app.add_middleware(ErrorHandlingMiddleware, timeout=30)
 
     app.add_middleware(OpenTelemetryMiddleware)
