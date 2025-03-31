@@ -1,8 +1,8 @@
 import asyncio
 import os
 
-import atproto_client.exceptions
-import atproto_client.models.common as atproto_models
+import atproto_client.exceptions  # type: ignore
+import atproto_client.models.common as atproto_models  # type: ignore
 import fastapi
 import fastapi.middleware.cors as cors
 import fastapi.middleware.trustedhost as trustedhost
@@ -121,9 +121,7 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
 
                 message = "request timed out"
                 logger.error(message, exc=exc, status_code=408)
-                return starlette.responses.JSONResponse(
-                    {"detail": message}, status_code=408
-                )
+                return starlette.responses.JSONResponse({"detail": message}, status_code=408)
 
             # handle other exceptions that may occur during request processing
             except Exception as exc:
