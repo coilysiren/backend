@@ -7,6 +7,12 @@ brew install pyenv
 brew install poetry
 brew install curl
 brew install jq
+
+poetry config virtualenvs.in-project true
+poetry sync
+poetry self add poetry-plugin-export
+poetry export -f requirements.txt --output requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Local Development
@@ -26,7 +32,6 @@ OTEL_SDK_DISABLED=true
 Initialize the virtualenv like so
 
 ```bash
-poetry config virtualenvs.in-project true
 poetry sync
 ```
 
@@ -40,4 +45,10 @@ In a second terminal, run this:
 
 ```bash
 curl "http://localhost:4000/bsky/coilysiren.me/profile" | jq # again, use your handle, not mine
+```
+
+In a yet 3rd terminal, try this:
+
+```bash
+invoke bsky --path app.bsky.feed.getTimeline --kwargs ""
 ```
