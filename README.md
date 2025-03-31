@@ -14,8 +14,12 @@ brew install jq
 Create .env file with the following contents
 
 ```bash
-BSKY_PASSWORD=1234-1234-1234-1234 # this is a placeholder, create a real one here: https://bsky.app/settings/app-passwords
 BSKY_USERNAME=coilysiren.me # use yours, not mine
+BSKY_PASSWORD=1244-1244-1244-1244 # this is a placeholder, create a real one here: https://bsky.app/settings/app-passwords
+
+BSKY_BOT_USERNAME=coilysiren-bot.bsky.social
+BSYK_BOT_PASSWORD=1244-1244-1244-1244
+
 OTEL_SDK_DISABLED=true
 ```
 
@@ -29,33 +33,11 @@ poetry sync
 In one terminal, run this:
 
 ```bash
-poetry run uvicorn src.main:app --reload --port 3000 --host 0.0.0.0
+poetry run uvicorn src.main:app --reload --port 4000 --host 0.0.0.0
 ```
 
 In a second terminal, run this:
 
 ```bash
-curl "http://localhost:3000/bksy/following/?handle=coilysiren.me" | jq # again, use your handle, not mine
-```
-
-## Testing Telemetry
-
-```bash
-# bash
-poetry run opentelemetry-instrument \
-  --exporter_otlp_endpoint "https://api.honeycomb.io" \
-  --exporter_otlp_headers "$OTEL_EXPORTER_OTLP_HEADERS" \
-  --exporter_otlp_protocol "http/protobuf" \
-  --service_name "backend" \
-  uvicorn src.main:app --host 0.0.0.0 --port 3000
-```
-
-```bash
-# powershell
-poetry run opentelemetry-instrument `
-  --exporter_otlp_endpoint "https://api.honeycomb.io" `
-  --exporter_otlp_headers "$env:OTEL_EXPORTER_OTLP_HEADERS" `
-  --exporter_otlp_protocol "http/protobuf" `
-  --service_name "backend" `
-  uvicorn src.main:app --host 0.0.0.0 --port 3000
+curl "http://localhost:4000/bsky/coilysiren.me/profile" | jq # again, use your handle, not mine
 ```
