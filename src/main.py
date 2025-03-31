@@ -82,13 +82,13 @@ async def bsky_mutuals(request: fastapi.Request, handle: str):
 @app.get("/bsky/{me}/credibility/{them}")
 @app.get("/bsky/{me}/credibility/{them}/")
 @limiter.limit("10/second")
-async def bsky_credibilty(request: fastapi.Request, me: str, them: str):
+async def bsky_credibilty(request: fastapi.Request, handle: str, them: str):
     """
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow
     """
     handle = bsky.handle_scrubber(handle)
-    lenders = bsky.credibilty(bsky_client, me, them)
+    lenders = bsky.credibilty(bsky_client, handle, them)
     return lenders
 
 

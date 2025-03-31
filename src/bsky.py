@@ -7,7 +7,7 @@ import structlog
 
 from . import telemetry
 
-telemetry = telemetry.Telemetry()
+_telemetry = telemetry.Telemetry()
 logger = structlog.get_logger()
 cache: typing.Dict[str, typing.Any] = {}
 
@@ -37,11 +37,11 @@ def handle_scrubber(handle: str) -> str:
     # 5. - (dash)
     # remove any characters that do not match the above rules
     # Use regex to filter allowed characters
-    sanitized_handle = re.sub(r"[^a-zA-Z0-9._-]", "", handle)
-    return sanitized_handle.strip().lower()
+    handle = re.sub(r"[^a-zA-Z0-9._-]", "", handle)
+    return handle.strip().lower()
 
 
-def popularity(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
+def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str, int], int]:
     """
     For every person I follow,
     list people who they follow,
@@ -52,7 +52,7 @@ def popularity(client: atproto.Client, me: str, index=0) -> tuple[list[str], int
     my_following.sort()
     my_following_to_check = my_following[index:next_index]
 
-    popularity = {}
+    popularity_dict: dict[str, int] = {}
 
     # For everyone that I follow,
     for my_follow in my_following_to_check:
@@ -63,22 +63,16 @@ def popularity(client: atproto.Client, me: str, index=0) -> tuple[list[str], int
         # And remove the people I follow
         for thier_follow in following:
             thier_follow.strip().lower()
-            if (
-                thier_follow
-                and thier_follow != "handle.invalid"
-                and thier_follow != "bsky.app"
-            ):
-                if popularity.get(thier_follow) is None:
-                    popularity[thier_follow] = 1
+            if thier_follow and thier_follow != "handle.invalid" and thier_follow != "bsky.app":
+                if popularity_dict.get(thier_follow) is None:
+                    popularity_dict[thier_follow] = 1
                 else:
-                    popularity[thier_follow] += 1
+                    popularity_dict[thier_follow] += 1
 
     # return -1 next index (indicating the we are done) if we are at the end of the list
-    next_index = (
-        next_index if next_index < POPULARITY_PER_PAGE * MAX_POPULARITY_PAGES else -1
-    )
+    next_index = next_index if next_index < POPULARITY_PER_PAGE * MAX_POPULARITY_PAGES else -1
 
-    return (popularity, next_index)
+    return (popularity_dict, next_index)
 
 
 def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
@@ -114,9 +108,7 @@ def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], in
                 suggestions.append(thier_follow)
 
     # return -1 next index (indicating the we are done) if we are at the end of the list
-    next_index = (
-        next_index if next_index < SUGGESTIONS_PER_PAGE * MAX_SUGGESTION_PAGES else -1
-    )
+    next_index = next_index if next_index < SUGGESTIONS_PER_PAGE * MAX_SUGGESTION_PAGES else -1
 
     return (suggestions, next_index)
 
@@ -134,9 +126,7 @@ def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
     return percent
 
 
-def credibilty(
-    client: atproto.Client, me: str, them: str
-) -> typing.Dict[str, typing.Any]:
+def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, typing.Any]:
     """
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow
@@ -157,9 +147,7 @@ def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.
 def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in _get_or_return_cache(
-            handle, "get_followers", lambda: _get_followers(client, handle)
-        )
+        for profile in _get_or_return_cache(handle, "get_followers", lambda: _get_followers(client, handle))
     }
     return followers
 
@@ -167,9 +155,7 @@ def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typin
 def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in _get_or_return_cache(
-            handle, "get_following", lambda: _get_following(client, handle)
-        )
+        for profile in _get_or_return_cache(handle, "get_following", lambda: _get_following(client, handle))
     }
     return followers
 
@@ -218,11 +204,9 @@ def _format_profile(
 #   3. should be cached inside of the functions calling them (except the cache itself, obviously)
 
 
-def _get_or_return_cache(
-    suffix: str, func_name: str, func: typing.Callable
-) -> typing.Any:
+def _get_or_return_cache(suffix: str, func_name: str, func: typing.Callable) -> typing.Any:
     key = f"{func_name}-{suffix}"
-    with telemetry.tracer.start_as_current_span("_get_or_return_cache") as span:
+    with _telemetry.tracer.start_as_current_span("_get_or_return_cache") as span:
         span.set_attribute("key", key)
         span.set_attribute("func_name", func_name)
         span.set_attribute("suffix", suffix)
@@ -243,13 +227,11 @@ def _get_profile(
     client: atproto.Client,
     handle: str,
 ) -> atproto.models.AppBskyActorDefs.ProfileViewDetailed:
-    with telemetry.tracer.start_as_current_span("_get_profile") as span:
+    with _telemetry.tracer.start_as_current_span("_get_profile") as span:
         span.set_attribute("handle", handle)
 
         # https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
-        response: atproto.models.AppBskyActorDefs.ProfileViewDetailed = (
-            client.get_profile(handle)
-        )
+        response: atproto.models.AppBskyActorDefs.ProfileViewDetailed = client.get_profile(handle)
         return response
 
 
@@ -257,27 +239,23 @@ def _get_followers(
     client: atproto.Client,
     handle: str,
     cursor: str = "",
-    followers: typing.Optional[
-        list[atproto.models.AppBskyActorDefs.ProfileView]
-    ] = None,
+    followers: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
-    with telemetry.tracer.start_as_current_span("_get_followers") as span:
+    with _telemetry.tracer.start_as_current_span("_get_followers") as span:
         span.set_attribute("handle", handle)
         span.set_attribute("depth", depth)
         span.set_attribute("followers", len(followers) if followers else 0)
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
         followers = followers or []
-        response: atproto.models.AppBskyGraphGetFollowers.Response = (
-            client.get_followers(handle, limit=100, cursor=cursor)
+        response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(
+            handle, limit=100, cursor=cursor
         )
         followers = followers + response.followers
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
-            return _get_followers(
-                client, handle, cursor=response.cursor, followers=followers, depth=depth
-            )
+            return _get_followers(client, handle, cursor=response.cursor, followers=followers, depth=depth)
         else:
             return followers or []
 
@@ -286,26 +264,20 @@ def _get_following(
     client: atproto.Client,
     handle: str,
     cursor: str = "",
-    following: typing.Optional[
-        list[atproto.models.AppBskyActorDefs.ProfileView]
-    ] = None,
+    following: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
-    with telemetry.tracer.start_as_current_span("_get_following") as span:
+    with _telemetry.tracer.start_as_current_span("_get_following") as span:
         span.set_attribute("handle", handle)
         span.set_attribute("depth", depth)
         span.set_attribute("following", len(following) if following else 0)
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
         following = following or []
-        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(
-            handle, limit=100, cursor=cursor
-        )
+        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
         following = following + response.follows
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
-            return _get_following(
-                client, handle, cursor=response.cursor, following=following, depth=depth
-            )
+            return _get_following(client, handle, cursor=response.cursor, following=following, depth=depth)
         else:
             return following or []
