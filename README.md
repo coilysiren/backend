@@ -7,6 +7,7 @@ brew install pyenv
 brew install poetry
 brew install curl
 brew install jq
+brew install redis
 
 poetry config virtualenvs.in-project true
 poetry sync
@@ -27,6 +28,7 @@ BSKY_BOT_USERNAME=coilysiren-bot.bsky.social
 BSYK_BOT_PASSWORD=1244-1244-1244-1244
 
 OTEL_SDK_DISABLED=true
+REDISCLOUD_URL=redis://default:@127.0.0.1:6379 # Would be nice if heroku just provisioned it as "REDIS_URL", but alas. And we should match heroku locally.
 ```
 
 Initialize the virtualenv like so

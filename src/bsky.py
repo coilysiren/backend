@@ -5,8 +5,7 @@ import typing
 import atproto  # type: ignore
 import structlog
 
-from . import telemetry
-from . import cache
+from . import cache, telemetry
 
 _telemetry = telemetry.Telemetry()
 logger = structlog.get_logger()
@@ -138,7 +137,7 @@ def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, t
 
 
 def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
-    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = cache.get_or_return_cache(
+    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = cache.get_or_return_cached(
         "bsky.get-profile", handle, lambda: _get_profile(client, handle)
     )
     return {profile.did: _format_detailed_profile(profile)}
@@ -147,7 +146,7 @@ def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.
 def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in cache.get_or_return_cache("bsky.get-followers", handle, lambda: _get_followers(client, handle))
+        for profile in cache.get_or_return_cached("bsky.get-followers", handle, lambda: _get_followers(client, handle))
     }
     return followers
 
@@ -155,13 +154,13 @@ def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typin
 def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in cache.get_or_return_cache("bsky.get-following", handle, lambda: _get_following(client, handle))
+        for profile in cache.get_or_return_cached("bsky.get-following", handle, lambda: _get_following(client, handle))
     }
     return followers
 
 
 def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
-    return cache.get_or_return_cache(
+    return cache.get_or_return_cached(
         "bsky.get-following-handles",
         handle,
         lambda: [profile.handle for profile in _get_following(client, handle)],

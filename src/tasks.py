@@ -9,7 +9,6 @@ import structlog
 from . import bsky as _bsky
 from . import cache
 
-
 dotenv.load_dotenv()
 bsky_client = _bsky.init()
 structlog.configure(
@@ -50,9 +49,9 @@ def bsky(ctx: invoke.Context, path: str, kwargs: str):
     kwargs = _parse_kwargs(kwargs)
     token = bsky_client._session.access_jwt
     headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
-    response = cache.get_or_return_cache(
+    response = cache.get_or_return_cached_request(
         "tasks.bsky",
         cache_suffix,
         lambda: requests.get(f"https://bsky.social/xrpc/{path}", headers=headers, timeout=30, params=kwargs),
     )
-    print(json.dumps(response.json(), indent=2))
+    print(json.dumps(response, indent=2))
