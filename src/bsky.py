@@ -6,10 +6,10 @@ import atproto  # type: ignore
 import structlog
 
 from . import telemetry
+from . import cache
 
 _telemetry = telemetry.Telemetry()
 logger = structlog.get_logger()
-cache: typing.Dict[str, typing.Any] = {}
 
 # MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of follows to list
 FOLLOWS_PER_PAGE = 100  # the max
@@ -138,8 +138,8 @@ def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, t
 
 
 def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
-    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = _get_or_return_cache(
-        handle, "get_profile", lambda: _get_profile(client, handle)
+    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = cache.get_or_return_cache(
+        "bsky.get-profile", handle, lambda: _get_profile(client, handle)
     )
     return {profile.did: _format_detailed_profile(profile)}
 
@@ -147,7 +147,7 @@ def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.
 def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in _get_or_return_cache(handle, "get_followers", lambda: _get_followers(client, handle))
+        for profile in cache.get_or_return_cache("bsky.get-followers", handle, lambda: _get_followers(client, handle))
     }
     return followers
 
@@ -155,15 +155,15 @@ def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typin
 def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     followers = {
         profile.did: _format_profile(profile)
-        for profile in _get_or_return_cache(handle, "get_following", lambda: _get_following(client, handle))
+        for profile in cache.get_or_return_cache("bsky.get-following", handle, lambda: _get_following(client, handle))
     }
     return followers
 
 
 def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
-    return _get_or_return_cache(
+    return cache.get_or_return_cache(
+        "bsky.get-following-handles",
         handle,
-        "get_following_handles",
         lambda: [profile.handle for profile in _get_following(client, handle)],
     )
 
@@ -204,30 +204,11 @@ def _format_profile(
 #   3. should be cached inside of the functions calling them (except the cache itself, obviously)
 
 
-def _get_or_return_cache(suffix: str, func_name: str, func: typing.Callable) -> typing.Any:
-    key = f"{func_name}-{suffix}"
-    with _telemetry.tracer.start_as_current_span("_get_or_return_cache") as span:
-        span.set_attribute("key", key)
-        span.set_attribute("func_name", func_name)
-        span.set_attribute("suffix", suffix)
-
-        if key in cache:
-            span.set_attribute("adjective", "hit")
-            logger.info("cache", adjective="hit", func_name=func_name, key=key)
-            return cache[key]
-        else:
-            span.set_attribute("adjective", "miss")
-            logger.info("cache", adjective="miss", func_name=func_name, key=key)
-            result = func()
-            cache[key] = result
-            return result
-
-
 def _get_profile(
     client: atproto.Client,
     handle: str,
 ) -> atproto.models.AppBskyActorDefs.ProfileViewDetailed:
-    with _telemetry.tracer.start_as_current_span("_get_profile") as span:
+    with _telemetry.tracer.start_as_current_span("bsky.get-profile") as span:
         span.set_attribute("handle", handle)
 
         # https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
@@ -242,7 +223,7 @@ def _get_followers(
     followers: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
-    with _telemetry.tracer.start_as_current_span("_get_followers") as span:
+    with _telemetry.tracer.start_as_current_span("bsky.get-followers") as span:
         span.set_attribute("handle", handle)
         span.set_attribute("depth", depth)
         span.set_attribute("followers", len(followers) if followers else 0)
@@ -267,7 +248,7 @@ def _get_following(
     following: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
     depth: int = 0,
 ) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
-    with _telemetry.tracer.start_as_current_span("_get_following") as span:
+    with _telemetry.tracer.start_as_current_span("bsky.get-following") as span:
         span.set_attribute("handle", handle)
         span.set_attribute("depth", depth)
         span.set_attribute("following", len(following) if following else 0)

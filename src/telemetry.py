@@ -1,11 +1,7 @@
 import os
 
 import dotenv
-import opentelemetry.exporter.otlp.proto.http.metric_exporter as otel_metric_exporter
 import opentelemetry.exporter.otlp.proto.http.trace_exporter as otel_trace_exporter
-import opentelemetry.metrics as otel_metrics
-import opentelemetry.sdk.metrics as otel_sdk_metrics
-import opentelemetry.sdk.metrics.export as otel_metrics_export
 import opentelemetry.sdk.resources as otel_resources
 import opentelemetry.sdk.trace as otel_sdk_trace
 import opentelemetry.sdk.trace.export as otel_export
@@ -33,8 +29,8 @@ class Telemetry(object):
             cls.initalized = True
         return cls
 
-    def create_tracer(cls):
-        otel_trace_provider = otel_sdk_trace.TracerProvider(resource=cls.resource)
+    def create_tracer(self):
+        otel_trace_provider = otel_sdk_trace.TracerProvider(resource=self.resource)
         otel_processor = otel_export.BatchSpanProcessor(
             otel_trace_exporter.OTLPSpanExporter(
                 endpoint="https://api.honeycomb.io/v1/traces",
@@ -48,7 +44,7 @@ class Telemetry(object):
         tracer = otel_trace.get_tracer(__name__)
         return tracer
 
-    def sentry_init(cls):
+    def sentry_init(self):
         # Init a real version of the sentry client, just to make sure its working.
         sentry_sdk.init(
             dsn=os.getenv("SENTRY_DSN"),
