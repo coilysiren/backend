@@ -27,27 +27,14 @@ def init():
     return client
 
 
-def handle_scrubber(handle: str) -> str:
-    # allow the following characters:
-    # 1. a - z (lowercase or uppercase)
-    # 2. 0 - 9 (numbers)
-    # 3. . (period)
-    # 4. _ (underscore)
-    # 5. - (dash)
-    # remove any characters that do not match the above rules
-    # Use regex to filter allowed characters
-    handle = re.sub(r"[^a-zA-Z0-9._-]", "", handle)
-    return handle.strip().lower()
-
-
-def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str, int], int]:
+async def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str, int], int]:
     """
     For every person I follow,
     list people who they follow,
     and aggregate that list to see how popular each person is.
     """
     next_index = index + POPULARITY_PER_PAGE
-    my_following = get_following_handles(client, me)
+    my_following = await get_following_handles(client, me)
     my_following.sort()
     my_following_to_check = my_following[index:next_index]
 
@@ -57,7 +44,7 @@ def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str, int]
     for my_follow in my_following_to_check:
 
         # List of who they follow
-        following = get_following_handles(client, my_follow)
+        following = await get_following_handles(client, my_follow)
 
         # And remove the people I follow
         for thier_follow in following:
@@ -74,13 +61,13 @@ def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str, int]
     return (popularity_dict, next_index)
 
 
-def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
+async def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
     """
     For everyone that I follow,
     list who they follow that I don't follow.
     """
     next_index = index + SUGGESTIONS_PER_PAGE
-    my_following = get_following_handles(client, me)
+    my_following = await get_following_handles(client, me)
     my_following.sort()
     my_following_to_check = my_following[index:next_index]
 
@@ -90,7 +77,7 @@ def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], in
     for my_follow in my_following_to_check:
 
         # List of who they follow
-        following = get_following_handles(client, my_follow)
+        following = await get_following_handles(client, my_follow)
 
         # And remove the people I follow
         for thier_follow in following:
@@ -112,59 +99,100 @@ def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], in
     return (suggestions, next_index)
 
 
-def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
+async def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
     """
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow,
     as of of a percent of their followers.
     1 (eg. 100%) credibility would mean that all of their followers are people I follow.
     """
-    thier_followers = get_followers(client, them)  # this is requested twice, but cached
-    lenders = credibilty(client, me, them)
+    thier_followers = await get_followers(client, them)  # this is requested twice, but cached
+    lenders = await credibilty(client, me, them)
     percent = len(lenders) / len(thier_followers)
     return percent
 
 
-def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, typing.Any]:
+async def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, typing.Any]:
     """
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow
     """
-    my_following = get_following(client, me)
-    thier_followers = get_followers(client, them)
+    my_following = await get_following(client, me)
+    thier_followers = await get_followers(client, them)
     lenders = {k: v for k, v in my_following.items() if k in thier_followers}
     return lenders
 
 
-def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
-    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = cache.get_or_return_cached(
+async def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = await cache.get_or_return_cached(
         "bsky.get-profile", handle, lambda: _get_profile(client, handle)
     )
     return {profile["did"]: profile}
 
 
-def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+async def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     follows = {
         profile["did"]: profile
-        for profile in cache.get_or_return_cached("bsky.get-followers", handle, lambda: _get_followers(client, handle))
+        for profile in await cache.get_or_return_cached(
+            "bsky.get-followers", handle, lambda: _get_followers(client, handle)
+        )
     }
     return follows
 
 
-def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+async def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
     follows = {
         profile["did"]: profile
-        for profile in cache.get_or_return_cached("bsky.get-following", handle, lambda: _get_following(client, handle))
+        for profile in await cache.get_or_return_cached(
+            "bsky.get-following", handle, lambda: _get_following(client, handle)
+        )
     }
     return follows
 
 
-def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
-    return cache.get_or_return_cached(
+async def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
+    output = await cache.get_or_return_cached(
         "bsky.get-following-handles",
         handle,
         lambda: _get_following_handles(client, handle),
     )
+    return output
+
+
+def handle_scrubber(handle: str) -> str:
+    # allow the following characters:
+    # 1. a - z (lowercase or uppercase)
+    # 2. 0 - 9 (numbers)
+    # 3. . (period)
+    # 4. _ (underscore)
+    # 5. - (dash)
+    # remove any characters that do not match the above rules
+    # Use regex to filter allowed characters
+    handle = re.sub(r"[^a-zA-Z0-9._-]", "", handle)
+    return handle.strip().lower()
+
+
+def _filter_profiles(
+    profiles: list[atproto.models.AppBskyActorDefs.ProfileViewBasic],
+) -> list[atproto.models.AppBskyActorDefs.ProfileViewBasic]:
+    """
+    Filter out any profiles that are invalid, or blocked (in either direction).
+    """
+    return [
+        profile
+        for profile in profiles
+        if not (
+            profile.handle == "handle.invalid"
+            or (
+                profile.viewer
+                and (
+                    profile.viewer.blocking is True
+                    or profile.viewer.blocked_by is True
+                    or profile.viewer.blocking_by_list is True
+                )
+            )
+        )
+    ]
 
 
 def _format_detailed_profile(
@@ -183,6 +211,9 @@ def _format_detailed_profile(
         "postCount": profile.posts_count,
         "pinnedPostCid": profile.pinned_post.cid if profile.pinned_post else None,
         "pinnedPostUri": profile.pinned_post.uri if profile.pinned_post else None,
+        "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
+        "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
+        "viewerBlockingByList": profile.viewer.blocking_by_list if profile.viewer else None,
         "viewerFollowedBy": profile.viewer.followed_by if profile.viewer else None,
         "viewerFollowing": profile.viewer.following if profile.viewer else None,
         "viewerKnownFollowersCount": (
@@ -205,7 +236,10 @@ def _format_profile(
         "avatar": profile.avatar,
         "displayName": profile.display_name,
         "createdAt": profile.created_at,
-        "description": profile.description,
+        "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
+        "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
+        "viewerBlockingByList": profile.viewer.blocking_by_list if profile.viewer else None,
+        "description": profile.description,  # The only thing that's different from the basic profile
     }
 
 
@@ -218,6 +252,9 @@ def _format_profile_basic(
         "avatar": profile.avatar,
         "displayName": profile.display_name,
         "createdAt": profile.created_at,
+        "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
+        "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
+        "viewerBlockingByList": profile.viewer.blocking_by_list if profile.viewer else None,
     }
 
 
@@ -261,7 +298,7 @@ def _get_followers(
         response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(
             handle, limit=100, cursor=cursor
         )
-        followers = followers + [_format_profile(profile) for profile in response.followers]
+        followers = followers + [_format_profile(profile) for profile in _filter_profiles(response.followers)]
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
             return _get_followers(client, handle, cursor=response.cursor, followers=followers, depth=depth)
@@ -284,7 +321,7 @@ def _get_following(
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
         following = following or []
         response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
-        following = following + [_format_profile(profile) for profile in response.follows]
+        following = following + [_format_profile(profile) for profile in _filter_profiles(response.follows)]
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
             return _get_following(client, handle, cursor=response.cursor, following=following, depth=depth)
@@ -307,7 +344,7 @@ def _get_following_handles(
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
         handles = handles or []
         response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
-        handles = handles + [profile.handle for profile in response.follows if profile.handle != "handle.invalid"]
+        handles = handles + [profile.handle for profile in _filter_profiles(response.follows)]
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
             return _get_following_handles(client, handle, cursor=response.cursor, handles=handles, depth=depth)

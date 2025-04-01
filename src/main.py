@@ -26,7 +26,7 @@ async def trigger_error():
 @limiter.limit("10/second")
 async def bsky_followers(request: fastapi.Request, handle: str):
     handle = bsky.handle_scrubber(handle)
-    output = bsky.get_followers(bsky_client, handle)
+    output = await bsky.get_followers(bsky_client, handle)
     return output
 
 
@@ -35,7 +35,7 @@ async def bsky_followers(request: fastapi.Request, handle: str):
 @limiter.limit("10/second")
 async def bsky_following(request: fastapi.Request, handle: str):
     handle = bsky.handle_scrubber(handle)
-    output = bsky.get_following(bsky_client, handle)
+    output = await bsky.get_following(bsky_client, handle)
     return output
 
 
@@ -44,7 +44,7 @@ async def bsky_following(request: fastapi.Request, handle: str):
 @limiter.limit("10/second")
 async def bsky_following_handles(request: fastapi.Request, handle: str):
     handle = bsky.handle_scrubber(handle)
-    output = bsky.get_following_handles(bsky_client, handle)
+    output = await bsky.get_following_handles(bsky_client, handle)
     return output
 
 
@@ -53,7 +53,7 @@ async def bsky_following_handles(request: fastapi.Request, handle: str):
 @limiter.limit("10/second")
 async def bsky_profile(request: fastapi.Request, handle: str):
     handle = bsky.handle_scrubber(handle)
-    output = bsky.get_profile(bsky_client, handle)
+    output = await bsky.get_profile(bsky_client, handle)
     return output
 
 
@@ -63,8 +63,8 @@ async def bsky_profile(request: fastapi.Request, handle: str):
 async def bsky_mutuals(request: fastapi.Request, handle: str):
     """People I follow who follow me back"""
     handle = bsky.handle_scrubber(handle)
-    followers = bsky.get_followers(bsky_client, handle)
-    following = bsky.get_following(bsky_client, handle)
+    followers = await bsky.get_followers(bsky_client, handle)
+    following = await bsky.get_following(bsky_client, handle)
     mutuals = {k: v for k, v in followers.items() if k in following}
     return mutuals
 
@@ -78,7 +78,7 @@ async def bsky_credibilty(request: fastapi.Request, handle: str, them: str):
     show who lends 'credibility' to them in the form of a follow
     """
     handle = bsky.handle_scrubber(handle)
-    lenders = bsky.credibilty(bsky_client, handle, them)
+    lenders = await bsky.credibilty(bsky_client, handle, them)
     return lenders
 
 
@@ -94,7 +94,7 @@ async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
     """
     me = bsky.handle_scrubber(me)
     them = bsky.handle_scrubber(them)
-    percent = bsky.credibilty_percent(bsky_client, me, them)
+    percent = await bsky.credibilty_percent(bsky_client, me, them)
     return percent
 
 
@@ -107,7 +107,7 @@ async def bluesky_popularity(request: fastapi.Request, handle: str):
     and aggregate that list to see how popular each person is.
     """
     handle = bsky.handle_scrubber(handle)
-    (popularity, next_index) = bsky.popularity(bsky_client, handle, 0)
+    (popularity, next_index) = await bsky.popularity(bsky_client, handle, 0)
     return {
         "popularity": popularity,
         "next": next_index,
@@ -124,7 +124,7 @@ async def bluesky_popularity_page(request: fastapi.Request, handle: str, index: 
     This returns the {index} page of the popularity list.
     """
     handle = bsky.handle_scrubber(handle)
-    (popularity, next_index) = bsky.popularity(bsky_client, handle, index)
+    (popularity, next_index) = await bsky.popularity(bsky_client, handle, index)
     return {
         "popularity": popularity,
         "next": next_index,
@@ -141,7 +141,7 @@ async def bsky_suggestions(request: fastapi.Request, handle: str):
     returning the first page of a list.
     """
     handle = bsky.handle_scrubber(handle)
-    (suggestions, next_index) = bsky.suggestions(bsky_client, handle, 0)
+    (suggestions, next_index) = await bsky.suggestions(bsky_client, handle, 0)
     return {
         "suggestions": suggestions,
         "next": next_index,
@@ -158,7 +158,7 @@ async def bsky_suggestions_page(request: fastapi.Request, handle: str, index: in
     returning the {index} page of a list.
     """
     handle = bsky.handle_scrubber(handle)
-    (suggestions, next_index) = bsky.suggestions(bsky_client, handle, index)
+    (suggestions, next_index) = await bsky.suggestions(bsky_client, handle, index)
     return {
         "suggestions": suggestions,
         "next": next_index,

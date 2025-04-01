@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -18,10 +19,10 @@ logging.basicConfig(stream=sys.stdout)
 
 redis_env = os.environ.get("REDISCLOUD_URL")
 redis_url = urllib.parse.urlparse(redis_env)
-redis = _redis.Redis(host=redis_url.hostname, port=redis_url.port, password=redis_url.password)
+redis = _redis.Redis(host=redis_url.hostname, port=redis_url.port, password=redis_url.password, socket_timeout=3)
 
 
-def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Callable[[], requests.Response]) -> dict:
+async def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Callable[[], requests.Response]) -> dict:
     key = f"{prefix}-{suffix}"
     expiry = 86400  # 1 day
     with _telemetry.tracer.start_as_current_span("get-or-return-cached-request") as span:
@@ -37,7 +38,7 @@ def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Callable
             return output
         else:
             span.set_attribute("adjective", "miss")
-            response = func()
+            response = await asyncio.to_thread(func)
             span.set_attribute("http.status_code", "response.status_code")
             if response.status_code >= 500:
                 logger.error(
@@ -75,7 +76,7 @@ def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Callable
             return output_json
 
 
-def get_or_return_cached(prefix: str, suffix: str, func: typing.Callable) -> typing.Any:
+async def get_or_return_cached(prefix: str, suffix: str, func: typing.Callable) -> typing.Any:
     key = f"{prefix}-{suffix}"
     expiry = 86400  # 1 day
     with _telemetry.tracer.start_as_current_span("get-or-return-cached") as span:
@@ -91,7 +92,7 @@ def get_or_return_cached(prefix: str, suffix: str, func: typing.Callable) -> typ
             return output
         else:
             span.set_attribute("adjective", "miss")
-            output = func()
+            output = await asyncio.to_thread(func)
             output_json = json.dumps(output)
             redis.set(key, output_json, ex=expiry)
             logger.info("cache", adjective="miss", prefix=prefix, suffix=suffix, key=key)
