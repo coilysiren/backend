@@ -43,7 +43,7 @@ def _parse_kwargs(input_str: str) -> dict[str, any]:
 
 
 @invoke.task
-def bsky(ctx: invoke.Context, path: str, kwargs: str):
+def bsky(ctx: invoke.Context, path: str, kwargs: str = ""):
     # https://docs.bsky.app/docs/category/http-reference
     cache_suffix = f"tasks.bsky-{path}-{kwargs}".replace(" ", "-")
     kwargs = _parse_kwargs(kwargs)
