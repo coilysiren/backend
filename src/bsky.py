@@ -144,26 +144,26 @@ def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.
 
 
 def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
-    followers = {
-        profile.did: _format_profile(profile)
+    follows = {
+        profile["did"]: profile
         for profile in cache.get_or_return_cached("bsky.get-followers", handle, lambda: _get_followers(client, handle))
     }
-    return followers
+    return follows
 
 
 def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
-    followers = {
-        profile.did: _format_profile(profile)
+    follows = {
+        profile["did"]: profile
         for profile in cache.get_or_return_cached("bsky.get-following", handle, lambda: _get_following(client, handle))
     }
-    return followers
+    return follows
 
 
 def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
     return cache.get_or_return_cached(
         "bsky.get-following-handles",
         handle,
-        lambda: [profile.handle for profile in _get_following(client, handle)],
+        lambda: _get_following_handles(client, handle),
     )
 
 
@@ -248,9 +248,9 @@ def _get_followers(
     client: atproto.Client,
     handle: str,
     cursor: str = "",
-    followers: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
+    followers: typing.Optional[list[dict[str, typing.Any]]] = None,
     depth: int = 0,
-) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
+) -> list[dict[str, typing.Any]]:
     with _telemetry.tracer.start_as_current_span("bsky.get-followers") as span:
         span.set_attribute("handle", handle)
         span.set_attribute("depth", depth)
@@ -261,7 +261,7 @@ def _get_followers(
         response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(
             handle, limit=100, cursor=cursor
         )
-        followers = followers + response.followers
+        followers = followers + [_format_profile(profile) for profile in response.followers]
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
             return _get_followers(client, handle, cursor=response.cursor, followers=followers, depth=depth)
@@ -273,9 +273,9 @@ def _get_following(
     client: atproto.Client,
     handle: str,
     cursor: str = "",
-    following: typing.Optional[list[atproto.models.AppBskyActorDefs.ProfileView]] = None,
+    following: typing.Optional[list[dict[str, typing.Any]]] = None,
     depth: int = 0,
-) -> list[atproto.models.AppBskyActorDefs.ProfileView]:
+) -> list[dict[str, typing.Any]]:
     with _telemetry.tracer.start_as_current_span("bsky.get-following") as span:
         span.set_attribute("handle", handle)
         span.set_attribute("depth", depth)
@@ -284,9 +284,32 @@ def _get_following(
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
         following = following or []
         response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
-        following = following + response.follows
+        following = following + [_format_profile(profile) for profile in response.follows]
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
             return _get_following(client, handle, cursor=response.cursor, following=following, depth=depth)
         else:
             return following or []
+
+
+def _get_following_handles(
+    client: atproto.Client,
+    handle: str,
+    cursor: str = "",
+    handles: typing.Optional[list[str]] = None,
+    depth: int = 0,
+) -> list[str]:
+    with _telemetry.tracer.start_as_current_span("bsky.get-following") as span:
+        span.set_attribute("handle", handle)
+        span.set_attribute("depth", depth)
+        span.set_attribute("following", len(handles) if handles else 0)
+
+        # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
+        handles = handles or []
+        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
+        handles = handles + [profile.handle for profile in response.follows if profile.handle != "handle.invalid"]
+        depth += 1
+        if response.cursor and depth < MAX_FOLLOWS_PAGES:
+            return _get_following_handles(client, handle, cursor=response.cursor, handles=handles, depth=depth)
+        else:
+            return handles or []
