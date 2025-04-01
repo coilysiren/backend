@@ -140,7 +140,7 @@ def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.
     profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = cache.get_or_return_cached(
         "bsky.get-profile", handle, lambda: _get_profile(client, handle)
     )
-    return {profile.did: _format_detailed_profile(profile)}
+    return {profile["did"]: profile}
 
 
 def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
@@ -174,10 +174,25 @@ def _format_detailed_profile(
         "did": profile.did,
         "handle": profile.handle,
         "avatar": profile.avatar,
+        "banner": profile.banner,
+        "created_at": profile.created_at,
         "description": profile.description,
         "displayName": profile.display_name,
         "followersCount": profile.followers_count,
         "followsCount": profile.follows_count,
+        "postCount": profile.posts_count,
+        "pinnedPostCid": profile.pinned_post.cid if profile.pinned_post else None,
+        "pinnedPostUri": profile.pinned_post.uri if profile.pinned_post else None,
+        "viewerFollowedBy": profile.viewer.followed_by if profile.viewer else None,
+        "viewerFollowing": profile.viewer.following if profile.viewer else None,
+        "viewerKnownFollowersCount": (
+            profile.viewer.known_followers.count if profile.viewer and profile.viewer.known_followers else 0
+        ),
+        "viewerKnownFollowers": (
+            [_format_profile_basic(follower) for follower in profile.viewer.known_followers.followers]
+            if profile.viewer and profile.viewer.known_followers
+            else []
+        ),
     }
 
 
@@ -188,8 +203,21 @@ def _format_profile(
         "did": profile.did,
         "handle": profile.handle,
         "avatar": profile.avatar,
-        "description": profile.description,
         "displayName": profile.display_name,
+        "createdAt": profile.created_at,
+        "description": profile.description,
+    }
+
+
+def _format_profile_basic(
+    profile: atproto.models.AppBskyActorDefs.ProfileViewBasic,
+) -> dict[str, typing.Any]:
+    return {
+        "did": profile.did,
+        "handle": profile.handle,
+        "avatar": profile.avatar,
+        "displayName": profile.display_name,
+        "createdAt": profile.created_at,
     }
 
 
@@ -206,13 +234,14 @@ def _format_profile(
 def _get_profile(
     client: atproto.Client,
     handle: str,
-) -> atproto.models.AppBskyActorDefs.ProfileViewDetailed:
+) -> dict[str, typing.Any]:
     with _telemetry.tracer.start_as_current_span("bsky.get-profile") as span:
         span.set_attribute("handle", handle)
 
         # https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
         response: atproto.models.AppBskyActorDefs.ProfileViewDetailed = client.get_profile(handle)
-        return response
+        output = _format_detailed_profile(response)
+        return output
 
 
 def _get_followers(

@@ -92,6 +92,9 @@ def get_or_return_cached(prefix: str, suffix: str, func: typing.Callable) -> typ
         else:
             span.set_attribute("adjective", "miss")
             output = func()
+
+            print(output)
+
             output_json = json.dumps(output)
             redis.set(key, output_json, ex=expiry)
             logger.info("cache", adjective="miss", prefix=prefix, suffix=suffix, key=key)
