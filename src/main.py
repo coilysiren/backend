@@ -175,4 +175,34 @@ async def bsky_suggestions_page(request: fastapi.Request, handle: str, index: in
     }
 
 
+@app.get("/bsky/{handle}/feed")
+@app.get("/bsky/{handle}/feed/")
+@limiter.limit("10/second")
+async def bsky_feed_author(request: fastapi.Request, handle: str):
+    """
+    Get my posts
+    """
+    handle = bsky.handle_scrubber(handle)
+    (feed, cursor) = await bsky.get_author_feed(bsky_client, handle, request.query_params.get("cursor", None))
+    return {
+        "feed": feed,
+        "next": cursor,
+    }
+
+
+@app.get("/bsky/{handle}/feed/text")
+@app.get("/bsky/{handle}/feed/text/")
+@limiter.limit("10/second")
+async def bsky_feed_author(request: fastapi.Request, handle: str):
+    """
+    Get my posts
+    """
+    handle = bsky.handle_scrubber(handle)
+    (feed, cursor) = await bsky.get_author_feed_text(bsky_client, handle, request.query_params.get("cursor", None))
+    return {
+        "feed": feed,
+        "next": cursor,
+    }
+
+
 otel_fastapi.FastAPIInstrumentor.instrument_app(app)

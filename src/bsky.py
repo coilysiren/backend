@@ -159,6 +159,24 @@ async def get_following_handles(client: atproto.Client, handle: str) -> list[str
     return output
 
 
+async def get_author_feed(
+    client: atproto.Client, handle: str, cursor: str = ""
+) -> tuple[list[dict[str, typing.Any]], str]:
+    return await cache.get_or_return_cached(
+        f"bsky.get-author-feed-{cursor}",
+        handle,
+        lambda: _get_author_feed(client, handle, cursor),
+    )
+
+
+async def get_author_feed_text(client: atproto.Client, handle: str, cursor: str = "") -> tuple[list[str], str]:
+    return await cache.get_or_return_cached(
+        f"bsky.get-author-feed-text-{cursor}",
+        handle,
+        lambda: _get_author_feed_text(client, handle, cursor),
+    )
+
+
 def handle_scrubber(handle: str) -> str:
     # allow the following characters:
     # 1. a - z (lowercase or uppercase)
@@ -258,6 +276,63 @@ def _format_profile_basic(
     }
 
 
+def _format_feed_view(
+    post: atproto.models.AppBskyFeedDefs.FeedViewPost,
+) -> dict[str, typing.Any]:
+    return {
+        "reasonBy": _format_profile_basic(post.reason.by) if post.reason else None,
+        "feedContext": post.feed_context,
+        #
+        **_format_post(
+            "post",
+            post.post,
+        ),
+        **_format_post(
+            "post",
+            (
+                post.reply.root
+                if post.reply and post.reply.root and not getattr(post.reply.root, "not_found", True)
+                else None
+            ),
+        ),
+        **_format_post(
+            "post",
+            (
+                post.reply.parent
+                if post.reply and post.reply.parent and not getattr(post.reply.parent, "not_found", True)
+                else None
+            ),
+        ),
+        "replyGrandparent": (
+            _format_profile_basic(post.reply.grandparent_author)
+            if post.reply and post.reply and post.reply.grandparent_author
+            else None
+        ),
+    }
+
+
+def _format_post(
+    prefix: str,
+    post: atproto.models.AppBskyFeedDefs.PostView | None,
+) -> dict[str, typing.Any]:
+    return (
+        {
+            f"{prefix}Author": _format_profile_basic(post.author),
+            f"{prefix}Text": post.record.text,
+            f"{prefix}Cid": post.cid,
+            f"{prefix}Uri": post.uri,
+            f"{prefix}LikeCount": post.like_count,
+            f"{prefix}RepostCount": post.repost_count,
+            f"{prefix}QuoteCount": post.quote_count,
+            f"{prefix}ReplyCount": post.reply_count,
+            f"{prefix}ViewerLike": post.viewer.like,
+            f"{prefix}ViewerRepost": post.viewer.repost,
+        }
+        if post
+        else {}
+    )
+
+
 #########################
 # CODE FORMATTING RULES #
 #########################
@@ -266,6 +341,43 @@ def _format_profile_basic(
 #   1. be doing something that takes a nontrivial amount of time (like making a network request)
 #   2. start a span, with its function inputs as attributes.
 #   3. should be cached inside of the functions calling them (except the cache itself, obviously)
+
+
+def _get_author_feed_text(
+    client: atproto.Client,
+    handle: str,
+    cursor: str = "",
+) -> tuple[list[str], str]:
+    with _telemetry.tracer.start_as_current_span("bsky.get-author-feed-text") as span:
+        span.set_attribute("handle", handle)
+        span.set_attribute("cursor", cursor)
+        # https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
+
+        response: atproto.models.AppBskyFeedGetAuthorFeed.Response = client.get_author_feed(
+            handle,
+            limit=100,
+            cursor=cursor,
+        )
+        return ([post.post.record.text for post in response.feed], response.cursor)
+
+
+def _get_author_feed(
+    client: atproto.Client,
+    handle: str,
+    cursor: str = "",
+) -> tuple[list[dict[str, typing.Any]], str]:
+    with _telemetry.tracer.start_as_current_span("bsky.get-author-feed") as span:
+        span.set_attribute("handle", handle)
+        span.set_attribute("cursor", cursor)
+        # https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
+
+        response: atproto.models.AppBskyFeedGetAuthorFeed.Response = client.get_author_feed(
+            handle,
+            limit=100,
+            cursor=cursor,
+        )
+        print("response", response)
+        return ([_format_feed_view(feed_view) for feed_view in response.feed], response.cursor)
 
 
 def _get_profile(

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import sys
 
@@ -49,9 +50,11 @@ def bsky(ctx: invoke.Context, path: str, kwargs: str = ""):
     kwargs = _parse_kwargs(kwargs)
     token = bsky_client._session.access_jwt
     headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
-    response = cache.get_or_return_cached_request(
-        "tasks.bsky",
-        cache_suffix,
-        lambda: requests.get(f"https://bsky.social/xrpc/{path}", headers=headers, timeout=30, params=kwargs),
+    response = asyncio.run(
+        cache.get_or_return_cached_request(
+            "tasks.bsky",
+            cache_suffix,
+            lambda: requests.get(f"https://bsky.social/xrpc/{path}", headers=headers, timeout=30, params=kwargs),
+        )
     )
     print(json.dumps(response, indent=2))
