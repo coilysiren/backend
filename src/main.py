@@ -2,7 +2,9 @@ import dotenv
 import fastapi
 import opentelemetry.instrumentation.fastapi as otel_fastapi
 
-from . import application, bsky, cache
+from . import application
+from . import bsky
+from . import cache
 
 dotenv.load_dotenv()
 (app, limiter) = application.init()
@@ -178,7 +180,7 @@ async def bsky_suggestions_page(request: fastapi.Request, handle: str, index: in
 @app.get("/bsky/{handle}/feed")
 @app.get("/bsky/{handle}/feed/")
 @limiter.limit("10/second")
-async def bsky_feed_author(request: fastapi.Request, handle: str):
+async def bsky_author_feed(request: fastapi.Request, handle: str):
     """
     Get my posts
     """
@@ -193,7 +195,7 @@ async def bsky_feed_author(request: fastapi.Request, handle: str):
 @app.get("/bsky/{handle}/feed/text")
 @app.get("/bsky/{handle}/feed/text/")
 @limiter.limit("10/second")
-async def bsky_feed_author(request: fastapi.Request, handle: str):
+async def bsky_author_feed_text(request: fastapi.Request, handle: str):
     """
     Get my posts
     """

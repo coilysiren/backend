@@ -170,11 +170,31 @@ async def get_author_feed(
 
 
 async def get_author_feed_text(client: atproto.Client, handle: str, cursor: str = "") -> tuple[list[str], str]:
+    """
+    Get the text of the author's feed.
+    """
     return await cache.get_or_return_cached(
         f"bsky.get-author-feed-text-{cursor}",
         handle,
         lambda: _get_author_feed_text(client, handle, cursor),
     )
+
+
+async def get_author_feed_texts(client: atproto.Client, handle: str, pages: int = 1) -> list[str]:
+    """
+    Get the text of the author's feed, going back a number of pages.
+    """
+    page = 0
+    texts = []
+    cursor = ""
+    while page < pages:
+        page_texts, cursor = await get_author_feed_text(client, handle, cursor)
+        print(f"cursor: {cursor}")
+        texts += page_texts
+        if not cursor:
+            break
+        page += 1
+    return texts
 
 
 def handle_scrubber(handle: str) -> str:
@@ -350,7 +370,6 @@ def _get_author_feed_text(
 ) -> tuple[list[str], str]:
     with _telemetry.tracer.start_as_current_span("bsky.get-author-feed-text") as span:
         span.set_attribute("handle", handle)
-        span.set_attribute("cursor", cursor)
         # https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
 
         response: atproto.models.AppBskyFeedGetAuthorFeed.Response = client.get_author_feed(
@@ -368,7 +387,6 @@ def _get_author_feed(
 ) -> tuple[list[dict[str, typing.Any]], str]:
     with _telemetry.tracer.start_as_current_span("bsky.get-author-feed") as span:
         span.set_attribute("handle", handle)
-        span.set_attribute("cursor", cursor)
         # https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
 
         response: atproto.models.AppBskyFeedGetAuthorFeed.Response = client.get_author_feed(
@@ -402,7 +420,6 @@ def _get_followers(
 ) -> list[dict[str, typing.Any]]:
     with _telemetry.tracer.start_as_current_span("bsky.get-followers") as span:
         span.set_attribute("handle", handle)
-        span.set_attribute("depth", depth)
         span.set_attribute("followers", len(followers) if followers else 0)
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
@@ -427,7 +444,6 @@ def _get_following(
 ) -> list[dict[str, typing.Any]]:
     with _telemetry.tracer.start_as_current_span("bsky.get-following") as span:
         span.set_attribute("handle", handle)
-        span.set_attribute("depth", depth)
         span.set_attribute("following", len(following) if following else 0)
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
@@ -450,7 +466,6 @@ def _get_following_handles(
 ) -> list[str]:
     with _telemetry.tracer.start_as_current_span("bsky.get-following") as span:
         span.set_attribute("handle", handle)
-        span.set_attribute("depth", depth)
         span.set_attribute("following", len(handles) if handles else 0)
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows

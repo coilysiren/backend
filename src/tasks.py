@@ -58,3 +58,29 @@ def bsky(ctx: invoke.Context, path: str, kwargs: str = ""):
         )
     )
     print(json.dumps(response, indent=2))
+
+
+@invoke.task
+def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1):
+    """Get the author's feed texts."""
+    output = asyncio.run(
+        _bsky.get_author_feed_texts(
+            bsky_client,
+            handle,
+            pages,
+        )
+    )
+    print(json.dumps(output, indent=2))
+
+
+# @invoke.task
+# def bsky_analyze_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1):
+#     """Analyze the author's feed texts."""
+#     output = asyncio.run(
+#         _bsky.get_author_feed_texts(
+#             bsky_client,
+#             handle,
+#             pages,
+#         )
+#     )
+#     print(json.dumps(output, indent=2))
