@@ -2,7 +2,7 @@ import dotenv
 import fastapi
 import opentelemetry.instrumentation.fastapi as otel_fastapi
 
-from . import application, bsky
+from . import application, bsky, cache
 
 dotenv.load_dotenv()
 (app, limiter) = application.init()
@@ -19,6 +19,16 @@ async def root(request: fastapi.Request):
 @app.get("/explode/")
 async def trigger_error():
     return 1 / 0
+
+
+@app.get("/cache/clear/{suffix}")
+@app.get("/cache/clear/{suffix}/")
+async def cache_clear(request: fastapi.Request, suffix: str):
+    """
+    Clear the cache for a given suffix.
+    """
+    cache.delete_keys(suffix)
+    return {"status": "ok"}
 
 
 @app.get("/bsky/{handle}/followers")

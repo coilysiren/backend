@@ -22,6 +22,13 @@ redis_url = urllib.parse.urlparse(redis_env)
 redis = _redis.Redis(host=redis_url.hostname, port=redis_url.port, password=redis_url.password, socket_timeout=3)
 
 
+def delete_keys(suffix: str) -> None:
+    # Delete keys matching a pattern
+    for key in redis.scan_iter(f"*{suffix}"):
+        redis.delete(key)
+        logger.info("cache", adjective="delete", key=key.decode("utf-8"))
+
+
 async def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Callable[[], requests.Response]) -> dict:
     key = f"{prefix}-{suffix}"
     expiry = 86400  # 1 day
@@ -33,7 +40,7 @@ async def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Ca
         output = redis.get(key)
         if output is not None:
             span.set_attribute("adjective", "hit")
-            logger.info("request-cache", adjective="hit", prefix=prefix, suffix=suffix, key=key)
+            logger.info("cache", adjective="hit", prefix=prefix, suffix=suffix, key=key)
             output = json.loads(output)
             return output
         else:
@@ -42,7 +49,7 @@ async def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Ca
             span.set_attribute("http.status_code", "response.status_code")
             if response.status_code >= 500:
                 logger.error(
-                    "request-cache",
+                    "cache",
                     adjective="error",
                     prefix=prefix,
                     suffix=suffix,
