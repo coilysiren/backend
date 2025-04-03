@@ -8,16 +8,20 @@ import invoke
 import requests  # type: ignore
 import structlog
 
-from . import bsky as _bsky
+from . import bsky
 from . import cache
+from . import data_science as _data_science
 
 dotenv.load_dotenv()
-bsky_client = _bsky.init()
+bsky_client = bsky.init()
+data_science_client = _data_science.DataScienceClient()
 structlog.configure(
     processors=[
         structlog.dev.ConsoleRenderer(),
     ],
-    logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),  # logs need to get to stderr so jq can parse stdout
+    logger_factory=structlog.PrintLoggerFactory(
+        file=sys.stderr
+    ),  # logs need to get to stderr so jq can parse stdout
 )
 
 
@@ -45,8 +49,7 @@ def _parse_kwargs(input_str: str) -> dict[str, any]:
 
 
 @invoke.task
-def bsky(ctx: invoke.Context, path: str, kwargs: str = ""):
-    # https://docs.bsky.app/docs/category/http-reference
+def bsky_cli(ctx: invoke.Context, path: str, kwargs: str = ""):
     cache_suffix = f"tasks.bsky-{path}-{kwargs}".replace(" ", "-")
     kwargs = _parse_kwargs(kwargs)
     token = bsky_client._session.access_jwt
@@ -55,7 +58,12 @@ def bsky(ctx: invoke.Context, path: str, kwargs: str = ""):
         cache.get_or_return_cached_request(
             "tasks.bsky",
             cache_suffix,
-            lambda: requests.get(f"https://bsky.social/xrpc/{path}", headers=headers, timeout=30, params=kwargs),
+            lambda: requests.get(
+                f"https://bsky.social/xrpc/{path}",
+                headers=headers,
+                timeout=30,
+                params=kwargs,
+            ),
         )
     )
     print(json.dumps(response, indent=2))
@@ -65,7 +73,7 @@ def bsky(ctx: invoke.Context, path: str, kwargs: str = ""):
 def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1):
     """Get the author's feed texts."""
     output = asyncio.run(
-        _bsky.get_author_feed_texts(
+        bsky.get_author_feed_texts(
             bsky_client,
             handle,
             pages,
@@ -75,47 +83,24 @@ def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1)
 
 
 @invoke.task
-def emoji_parser(ctx: invoke.Context):
-    """
-    Given this format:
+def bsky_emoji_summary(ctx: invoke.Context, handle: str):
+    text_lines = asyncio.run(bsky.get_author_feed_texts(bsky_client, handle, 100))
+    text_joined = "\n".join(text_lines)
 
-    😀, grinning face
-    😀, grinning face, number 2
+    keywords = _data_science.extract_keywords(data_science_client, text_joined, 50)
+    emoji_match_scores = _data_science.get_emoji_match_scores(
+        data_science_client, keywords
+    )
+    emoji_descriptions = _data_science.join_description_and_emoji_score(
+        text_lines, emoji_match_scores
+    )
 
-    Create the following list:
+    print()
+    print(f"{handle} talks about...")
+    print()
 
-    [
-        {
-            "emoji": "😀",
-            "description": "grinning face",
-        },
-        {
-            "emoji": "😀",
-            "description": "grinning face, number 2",
-        }
-    ]
-    """
-
-    with open(os.path.join(os.path.expanduser("~"), "Downloads", "emojis.txt"), "r", encoding="utf-8") as _file:
-        contents = _file.readlines()
-
-    emojis = []
-    for line in contents:
-        line = line.strip()
-        if not line:
-            continue
-        split_line = line.split(",", 1)
-        if len(split_line) < 2:
-            print(f"Skipping line: {line}")
-            continue
-        emoji = split_line[0]
-        description = " ".join(split_line[1:])
-        emojis.append(
-            {
-                "emoji": emoji.strip(),
-                "description": description.strip(),
-            }
-        )
-
-    with open("emojis.json", "w", encoding="utf-8") as _file:
-        json.dump(emojis, _file, ensure_ascii=False, indent=2)
+    for description in emoji_descriptions:
+        print(">", description[0], description[1])
+        print()
+        print(description[2])
+        print()

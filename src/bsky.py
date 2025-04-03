@@ -27,7 +27,9 @@ def init():
     return client
 
 
-async def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str, int], int]:
+async def popularity(
+    client: atproto.Client, me: str, index=0
+) -> tuple[dict[str, int], int]:
     """
     For every person I follow,
     list people who they follow,
@@ -49,19 +51,27 @@ async def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str
         # And remove the people I follow
         for thier_follow in following:
             thier_follow.strip().lower()
-            if thier_follow and thier_follow != "handle.invalid" and thier_follow != "bsky.app":
+            if (
+                thier_follow
+                and thier_follow != "handle.invalid"
+                and thier_follow != "bsky.app"
+            ):
                 if popularity_dict.get(thier_follow) is None:
                     popularity_dict[thier_follow] = 1
                 else:
                     popularity_dict[thier_follow] += 1
 
     # return -1 next index (indicating the we are done) if we are at the end of the list
-    next_index = next_index if next_index < POPULARITY_PER_PAGE * MAX_POPULARITY_PAGES else -1
+    next_index = (
+        next_index if next_index < POPULARITY_PER_PAGE * MAX_POPULARITY_PAGES else -1
+    )
 
     return (popularity_dict, next_index)
 
 
-async def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
+async def suggestions(
+    client: atproto.Client, me: str, index=0
+) -> tuple[list[str], int]:
     """
     For everyone that I follow,
     list who they follow that I don't follow.
@@ -94,7 +104,9 @@ async def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[st
                 suggestions.append(thier_follow)
 
     # return -1 next index (indicating the we are done) if we are at the end of the list
-    next_index = next_index if next_index < SUGGESTIONS_PER_PAGE * MAX_SUGGESTION_PAGES else -1
+    next_index = (
+        next_index if next_index < SUGGESTIONS_PER_PAGE * MAX_SUGGESTION_PAGES else -1
+    )
 
     return (suggestions, next_index)
 
@@ -106,13 +118,17 @@ async def credibilty_percent(client: atproto.Client, me: str, them: str) -> floa
     as of of a percent of their followers.
     1 (eg. 100%) credibility would mean that all of their followers are people I follow.
     """
-    thier_followers = await get_followers(client, them)  # this is requested twice, but cached
+    thier_followers = await get_followers(
+        client, them
+    )  # this is requested twice, but cached
     lenders = await credibilty(client, me, them)
     percent = len(lenders) / len(thier_followers)
     return percent
 
 
-async def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[str, typing.Any]:
+async def credibilty(
+    client: atproto.Client, me: str, them: str
+) -> typing.Dict[str, typing.Any]:
     """
     For some person I follow,
     show who lends 'credibility' to them in the form of a follow
@@ -123,14 +139,20 @@ async def credibilty(client: atproto.Client, me: str, them: str) -> typing.Dict[
     return lenders
 
 
-async def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
-    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = await cache.get_or_return_cached(
-        "bsky.get-profile", handle, lambda: _get_profile(client, handle)
+async def get_profile(
+    client: atproto.Client, handle: str
+) -> typing.Dict[str, typing.Any]:
+    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = (
+        await cache.get_or_return_cached(
+            "bsky.get-profile", handle, lambda: _get_profile(client, handle)
+        )
     )
     return {profile["did"]: profile}
 
 
-async def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+async def get_followers(
+    client: atproto.Client, handle: str
+) -> typing.Dict[str, typing.Any]:
     follows = {
         profile["did"]: profile
         for profile in await cache.get_or_return_cached(
@@ -140,7 +162,9 @@ async def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str,
     return follows
 
 
-async def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+async def get_following(
+    client: atproto.Client, handle: str
+) -> typing.Dict[str, typing.Any]:
     follows = {
         profile["did"]: profile
         for profile in await cache.get_or_return_cached(
@@ -169,7 +193,9 @@ async def get_author_feed(
     )
 
 
-async def get_author_feed_text(client: atproto.Client, handle: str, cursor: str = "") -> tuple[list[str], str]:
+async def get_author_feed_text(
+    client: atproto.Client, handle: str, cursor: str = ""
+) -> tuple[list[str], str]:
     """
     Get the text of the author's feed.
     """
@@ -180,7 +206,9 @@ async def get_author_feed_text(client: atproto.Client, handle: str, cursor: str 
     )
 
 
-async def get_author_feed_texts(client: atproto.Client, handle: str, pages: int = 1) -> list[str]:
+async def get_author_feed_texts(
+    client: atproto.Client, handle: str, pages: int = 1
+) -> list[str]:
     """
     Get the text of the author's feed, going back a number of pages.
     """
@@ -251,14 +279,21 @@ def _format_detailed_profile(
         "pinnedPostUri": profile.pinned_post.uri if profile.pinned_post else None,
         "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
         "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
-        "viewerBlockingByList": profile.viewer.blocking_by_list if profile.viewer else None,
+        "viewerBlockingByList": (
+            profile.viewer.blocking_by_list if profile.viewer else None
+        ),
         "viewerFollowedBy": profile.viewer.followed_by if profile.viewer else None,
         "viewerFollowing": profile.viewer.following if profile.viewer else None,
         "viewerKnownFollowersCount": (
-            profile.viewer.known_followers.count if profile.viewer and profile.viewer.known_followers else 0
+            profile.viewer.known_followers.count
+            if profile.viewer and profile.viewer.known_followers
+            else 0
         ),
         "viewerKnownFollowers": (
-            [_format_profile_basic(follower) for follower in profile.viewer.known_followers.followers]
+            [
+                _format_profile_basic(follower)
+                for follower in profile.viewer.known_followers.followers
+            ]
             if profile.viewer and profile.viewer.known_followers
             else []
         ),
@@ -276,7 +311,9 @@ def _format_profile(
         "createdAt": profile.created_at,
         "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
         "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
-        "viewerBlockingByList": profile.viewer.blocking_by_list if profile.viewer else None,
+        "viewerBlockingByList": (
+            profile.viewer.blocking_by_list if profile.viewer else None
+        ),
         "description": profile.description,  # The only thing that's different from the basic profile
     }
 
@@ -292,7 +329,9 @@ def _format_profile_basic(
         "createdAt": profile.created_at,
         "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
         "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
-        "viewerBlockingByList": profile.viewer.blocking_by_list if profile.viewer else None,
+        "viewerBlockingByList": (
+            profile.viewer.blocking_by_list if profile.viewer else None
+        ),
     }
 
 
@@ -311,7 +350,9 @@ def _format_feed_view(
             "post",
             (
                 post.reply.root
-                if post.reply and post.reply.root and not getattr(post.reply.root, "not_found", True)
+                if post.reply
+                and post.reply.root
+                and not getattr(post.reply.root, "not_found", True)
                 else None
             ),
         ),
@@ -319,7 +360,9 @@ def _format_feed_view(
             "post",
             (
                 post.reply.parent
-                if post.reply and post.reply.parent and not getattr(post.reply.parent, "not_found", True)
+                if post.reply
+                and post.reply.parent
+                and not getattr(post.reply.parent, "not_found", True)
                 else None
             ),
         ),
@@ -372,13 +415,18 @@ def _get_author_feed_text(
         span.set_attribute("handle", handle)
         # https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
 
-        response: atproto.models.AppBskyFeedGetAuthorFeed.Response = client.get_author_feed(
-            handle,
-            limit=100,
-            filter="posts_no_replies",
-            cursor=cursor,
+        response: atproto.models.AppBskyFeedGetAuthorFeed.Response = (
+            client.get_author_feed(
+                handle,
+                limit=100,
+                filter="posts_no_replies",
+                cursor=cursor,
+            )
         )
-        return ([post.post.record.text for post in response.feed], response.cursor)
+        return (
+            [post.post.record.text for post in response.feed],
+            response.cursor,
+        )
 
 
 def _get_author_feed(
@@ -390,13 +438,17 @@ def _get_author_feed(
         span.set_attribute("handle", handle)
         # https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
 
-        response: atproto.models.AppBskyFeedGetAuthorFeed.Response = client.get_author_feed(
-            handle,
-            limit=100,
-            cursor=cursor,
+        response: atproto.models.AppBskyFeedGetAuthorFeed.Response = (
+            client.get_author_feed(
+                handle,
+                limit=100,
+                cursor=cursor,
+            )
         )
-        print("response", response)
-        return ([_format_feed_view(feed_view) for feed_view in response.feed], response.cursor)
+        return (
+            [_format_feed_view(feed_view) for feed_view in response.feed],
+            response.cursor,
+        )
 
 
 def _get_profile(
@@ -407,7 +459,9 @@ def _get_profile(
         span.set_attribute("handle", handle)
 
         # https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
-        response: atproto.models.AppBskyActorDefs.ProfileViewDetailed = client.get_profile(handle)
+        response: atproto.models.AppBskyActorDefs.ProfileViewDetailed = (
+            client.get_profile(handle)
+        )
         output = _format_detailed_profile(response)
         return output
 
@@ -425,13 +479,17 @@ def _get_followers(
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
         followers = followers or []
-        response: atproto.models.AppBskyGraphGetFollowers.Response = client.get_followers(
-            handle, limit=100, cursor=cursor
+        response: atproto.models.AppBskyGraphGetFollowers.Response = (
+            client.get_followers(handle, limit=100, cursor=cursor)
         )
-        followers = followers + [_format_profile(profile) for profile in _filter_profiles(response.followers)]
+        followers = followers + [
+            _format_profile(profile) for profile in _filter_profiles(response.followers)
+        ]
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
-            return _get_followers(client, handle, cursor=response.cursor, followers=followers, depth=depth)
+            return _get_followers(
+                client, handle, cursor=response.cursor, followers=followers, depth=depth
+            )
         else:
             return followers or []
 
@@ -449,11 +507,17 @@ def _get_following(
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
         following = following or []
-        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
-        following = following + [_format_profile(profile) for profile in _filter_profiles(response.follows)]
+        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(
+            handle, limit=100, cursor=cursor
+        )
+        following = following + [
+            _format_profile(profile) for profile in _filter_profiles(response.follows)
+        ]
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
-            return _get_following(client, handle, cursor=response.cursor, following=following, depth=depth)
+            return _get_following(
+                client, handle, cursor=response.cursor, following=following, depth=depth
+            )
         else:
             return following or []
 
@@ -471,10 +535,16 @@ def _get_following_handles(
 
         # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
         handles = handles or []
-        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(handle, limit=100, cursor=cursor)
-        handles = handles + [profile.handle for profile in _filter_profiles(response.follows)]
+        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(
+            handle, limit=100, cursor=cursor
+        )
+        handles = handles + [
+            profile.handle for profile in _filter_profiles(response.follows)
+        ]
         depth += 1
         if response.cursor and depth < MAX_FOLLOWS_PAGES:
-            return _get_following_handles(client, handle, cursor=response.cursor, handles=handles, depth=depth)
+            return _get_following_handles(
+                client, handle, cursor=response.cursor, handles=handles, depth=depth
+            )
         else:
             return handles or []

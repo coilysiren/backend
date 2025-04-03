@@ -148,3 +148,5 @@ notebook/templates/*.html
 logs.log
 
 **/logs.log
+
+~.bashrc
