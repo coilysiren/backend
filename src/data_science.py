@@ -1,34 +1,51 @@
 import os
+import nltk  # type: ignore
+import nltk.corpus  # type: ignore
+import spacy
+import yake  # type: ignore
 import nltk
 import nltk.corpus
-import subprocess
 import spacy
-import yake
-import nltk
-import nltk.corpus
-import spacy
-import yaml
-import pprint
+import yaml  # type: ignore
 import spacy
 import json
+import dataclasses
 import spacy.language
 import spacy.tokens.doc as spacy_doc
+
+
+@dataclasses.dataclass
+class EmojiData(object):
+    emoji: str
+    description: str
+    nlp: spacy_doc.Doc
+
+
+@dataclasses.dataclass
+class KeywordData(object):
+    score: int
+    keyword: str
+
+
+@dataclasses.dataclass
+class KeywordScores(object):
+    keyword: str
+    score: float
+    emoji: str
 
 
 class DataScienceClient(object):
 
     initalized = False
-    emojis = []
-    emoji_nlp = []
-    ignore_list = set()
-    nlp: spacy.language.Language = None
+    emojis = [EmojiData]
+    ignore_list: set[str] = set()
+    nlp: spacy.language.Language
 
     def __new__(cls):
         if not cls.initalized:
             cls._load_nltk(cls)
             cls.nlp = cls._load_nlp(cls)
             cls.emojis = cls._load_emojis(cls)
-            cls.emoji_nlp = cls._load_emoji_nlp(cls)
             cls.ignore_list = cls._load_ignore_list(cls)
             cls.initalized = True
         return cls
@@ -45,15 +62,17 @@ class DataScienceClient(object):
         with open(os.path.join("emojis.json"), "r", encoding="utf-8") as _file:
             emojis = json.loads(_file.read())
 
-        return emojis
+        _emojis: list[EmojiData] = []
+        for emoji_index in range(len(emojis)):
+            _emojis.append(
+                EmojiData(
+                    emojis[emoji_index]["emoji"],
+                    emojis[emoji_index]["description"],
+                    self.nlp(emojis[emoji_index]["description"]),
+                )
+            )
 
-    def _load_emoji_nlp(self):
-        emoji_nlp = [
-            self.nlp(self.emojis[emoji_index]["description"])
-            for emoji_index in range(len(self.emojis))
-        ]
-
-        return emoji_nlp
+        return _emojis
 
     def _load_ignore_list(self):
         with open("nlp_ignore.yml", "r", encoding="utf-8") as _file:
@@ -66,23 +85,39 @@ class DataScienceClient(object):
         )
 
 
-def _remove_substring_entries(keyword_list: list[tuple[int, str]]):
-    # Sort by length of keyword (longest first), then by score (higher is better)
-    keyword_list.sort(key=lambda x: (-x[0], -len(x[1])))
+def _remove_substring_entries(keywords: list[KeywordData]) -> list[KeywordData]:
+    """
+    Given a list of keywords, remove any keywords that are substrings of other keywords.
+    For example, if the list contains "cat" and "cat food", remove "cat".
+    """
+    # Sort by length of keyword (longest first)
+    keywords.sort(key=lambda x: (-len(x.keyword), x.keyword))
 
     filtered_keywords = []
     seen_words = set()
 
-    for score, keyword in keyword_list:
-        words = set(keyword.split())  # Split phrase into individual words
+    # As you go down the list (longest first), add to a list of words you have seen so far.
+    # If you see a word that is not in the list, add it to the list.
+    # If you see a word that is in the list, skip it.
+    for keyword_data in keywords:
+        words = set(keyword_data.keyword.split())
         if not any(word in seen_words for word in words):
-            filtered_keywords.append((score, keyword))
-            seen_words.update(words)  # Add words to seen set
+            filtered_keywords.append(keyword_data)
+            seen_words.update(words)
 
     return filtered_keywords
 
 
-def extract_keywords(client: DataScienceClient, text: str, num_keywords: int = 50):
+def extract_keywords(
+    client: DataScienceClient, text: str, num_keywords: int = 50
+) -> list[KeywordData]:
+    """
+    Given a `client` that contains a simple ignore list.
+    And a `text` input to extract keywords from.
+    Return a list of keywords.
+    """
+
+    # https://pypi.org/project/yake/
     yake_kw_extractor = yake.KeywordExtractor(
         lan="en",
         top=num_keywords,
@@ -91,68 +126,90 @@ def extract_keywords(client: DataScienceClient, text: str, num_keywords: int = 5
     )
     keywords = yake_kw_extractor.extract_keywords(text.lower())
 
+    # This block is necessary because the order of the tuples is not consistent.
+    # Sometimes it's (keyword, score), sometimes it's (score, keyword).
+    # This depends on the operating system, as far as I can tell.
     keywords = [
-        (pair[0], pair[1]) if type(pair[0]) != str else (pair[1], pair[0])
+        (
+            KeywordData(pair[0], pair[1])
+            if type(pair[0]) != str
+            else KeywordData(pair[1], pair[0])
+        )
         for pair in keywords
-    ]  # this pair comes on in a different order depending on your operating system
+    ]
 
     keywords = _remove_substring_entries(keywords)
     return keywords
 
 
-def get_emoji_match_scores(client: DataScienceClient, keywords: list[str]):
-    emoji_match_scores = []
+def get_emoji_match_scores(
+    client: DataScienceClient, keywords: list[KeywordData], num_matches: int = 10
+) -> list[KeywordScores]:
+    """
+    Give a `client` that contains a list of emojis.
+    And a set of `keywords` to match against the emojis.
+    Get the "best of the best" matches of emojis to keywords.
+    """
 
-    for keyword in keywords:
-        _keyword = client.nlp(keyword[1])  # Process keyword text
-        keyword_scores = []
+    emoji_match_scores: list[KeywordScores] = []
 
+    for keyword_data in keywords:
+        _keyword: spacy_doc.Doc = client.nlp(keyword_data.keyword)
+        keyword_scores: list[KeywordScores] = []
+
+        # Check each keyword against each emoji
         for emoji_index in range(len(client.emojis)):
 
             # Check if emoji is in keyword or vice versa
             if any(
-                word == client.emojis[emoji_index]["description"].lower()
-                for word in keyword[1].lower().split()
+                word == client.emojis[emoji_index].description.lower()
+                for word in keyword_data.keyword.lower().split()
             ) or any(
-                word == keyword[1].lower()
-                for word in client.emojis[emoji_index]["description"].lower().split()
+                word == keyword_data.keyword.lower()
+                for word in client.emojis[emoji_index].description.lower().split()
             ):
-                emoji_match_score = 1.0  # Set max similarity score
+                # If so, then set to the max similarity score
+                emoji_match_score = 1.0
             else:
-                emoji_match_score = _keyword.similarity(
-                    client.emoji_nlp[emoji_index]
-                )  # Otherwise, use semantic similarity
+                # Otherwise, use semantic similarity
+                # https://spacy.io/api/doc#similarity
+                emoji_match_score = _keyword.similarity(client.emojis[emoji_index].nlp)
 
             keyword_scores.append(
-                [
-                    _keyword,
+                KeywordScores(
+                    str(_keyword),
                     emoji_match_score,
-                    client.emojis[emoji_index]["emoji"],
-                ]
+                    client.emojis[emoji_index].emoji,
+                )
             )
 
-        # Sort emoji matches by highest similarity
-        # and append best match to emoji_match_scores
-        keyword_scores.sort(key=lambda x: -x[1])
+        # Sort emoji matches by highest similarity.
+        # and append best match to emoji_match_scores.
+        # Where "best" means "the most similar to the keyword".
+        keyword_scores.sort(key=lambda x: -x.score)
         emoji_match_scores.append(keyword_scores[0])
 
     # Sort overall results by highest similarity, and clip them
-    emoji_match_scores.sort(key=lambda x: -x[1])
-    emoji_match_scores = emoji_match_scores[:10]
+    # This results in a list of the best matches for each keyword.
+    # This is intentionally the same sort + clip as above, but on the whole list.
+    # This produces a "best of the best" list.
+    emoji_match_scores.sort(key=lambda x: -x.score)
+    emoji_match_scores = emoji_match_scores[:num_matches]
     return emoji_match_scores
 
 
-def join_description_and_emoji_score(text_lines: list[str], emoji_match_scores: list):
+def join_description_and_emoji_score(
+    text_lines: list[str], emoji_match_scores: list[KeywordScores]
+):
     emoji_descriptions = []
+
     for emoji_score in emoji_match_scores:
-        keyword: spacy_doc.Doc = emoji_score[0]
-        emoji = emoji_score[2]
         for quote in text_lines:
-            if str(keyword) in quote:
+            if str(emoji_score.keyword) in quote:
                 emoji_descriptions.append(
                     [
-                        emoji,
-                        keyword,
+                        emoji_score.emoji,
+                        emoji_score.keyword,
                         quote,
                     ]
                 )

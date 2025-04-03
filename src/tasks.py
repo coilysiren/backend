@@ -83,11 +83,19 @@ def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1)
 
 
 @invoke.task
-def bsky_emoji_summary(ctx: invoke.Context, handle: str):
-    text_lines = asyncio.run(bsky.get_author_feed_texts(bsky_client, handle, 100))
+def bsky_emoji_summary(
+    ctx: invoke.Context, handle: str, num_keywords=25, num_feed_pages=25
+):
+    # Get the author's feed texts
+    text_lines = asyncio.run(
+        bsky.get_author_feed_texts(bsky_client, handle, num_feed_pages)
+    )
     text_joined = "\n".join(text_lines)
 
-    keywords = _data_science.extract_keywords(data_science_client, text_joined, 50)
+    # Get the keywords and emoji match scores
+    keywords = _data_science.extract_keywords(
+        data_science_client, text_joined, num_keywords
+    )
     emoji_match_scores = _data_science.get_emoji_match_scores(
         data_science_client, keywords
     )
@@ -95,6 +103,7 @@ def bsky_emoji_summary(ctx: invoke.Context, handle: str):
         text_lines, emoji_match_scores
     )
 
+    # Display the results
     print()
     print(f"{handle} talks about...")
     print()

@@ -16328,6 +16328,10 @@
     "description": "bowling"
   },
   {
+    "emoji": "🎮",
+    "description": "video game"
+  },
+  {
     "emoji": "🏏",
     "description": "cricket game"
   },
@@ -16426,10 +16430,6 @@
   {
     "emoji": "🪄",
     "description": "magic wand"
-  },
-  {
-    "emoji": "🎮",
-    "description": "video game"
   },
   {
     "emoji": "🕹️",
