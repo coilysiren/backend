@@ -18,6 +18,8 @@ pip install -r requirements.txt
 
 ## Local Development
 
+### The basics
+
 Create .env file with the following contents
 
 ```bash
@@ -37,6 +39,8 @@ Initialize the virtualenv like so
 poetry sync
 ```
 
+### API developement
+
 In one terminal, run this:
 
 ```bash
@@ -49,10 +53,10 @@ In a second terminal, run this:
 curl "http://localhost:4000/bsky/coilysiren.me/profile" | jq # again, use your handle, not mine
 ```
 
-In a yet 3rd terminal, try this:
+### Data Science
 
 ```bash
-invoke bsky --path app.bsky.feed.getTimeline --kwargs ""
+poetry run jupyter notebook
 ```
 
 ### Data Processing
