@@ -98,11 +98,11 @@ def bsky_emoji_summary(
     text_joined = "\n".join(text_lines)
 
     # Get the keywords and emoji match scores
-    keywords = _data_science.extract_keywords(
-        data_science_client, text_joined, num_keywords
+    keywords: list[_data_science.KeywordData] = _data_science.extract_keywords(
+        data_science_client, handle, text_joined, num_keywords
     )
-    emoji_match_scores = _data_science.get_emoji_match_scores(
-        data_science_client, keywords
+    emoji_match_scores: list[_data_science.KeywordEmojiData] = (
+        _data_science.get_emoji_match_scores(data_science_client, handle, keywords)
     )
     emoji_descriptions = _data_science.join_description_and_emoji_score(
         text_lines, emoji_match_scores

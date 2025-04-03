@@ -12,6 +12,11 @@ import json
 import dataclasses
 import spacy.language
 import spacy.tokens.doc as spacy_doc
+import structlog
+import numpy
+
+
+logger = structlog.get_logger()
 
 
 @dataclasses.dataclass
@@ -23,12 +28,12 @@ class EmojiData(object):
 
 @dataclasses.dataclass
 class KeywordData(object):
-    score: int
+    score: numpy.float64
     keyword: str
 
 
 @dataclasses.dataclass
-class KeywordScores(object):
+class KeywordEmojiData(object):
     keyword: str
     score: float
     emoji: str
@@ -109,7 +114,7 @@ def _remove_substring_entries(keywords: list[KeywordData]) -> list[KeywordData]:
 
 
 def extract_keywords(
-    client: DataScienceClient, text: str, num_keywords: int = 50
+    client: DataScienceClient, handle: str, text: str, num_keywords: int = 50
 ) -> list[KeywordData]:
     """
     Given a `client` that contains a simple ignore list.
@@ -139,23 +144,34 @@ def extract_keywords(
     ]
 
     keywords = _remove_substring_entries(keywords)
+    logger.info(
+        "extract-keywords",
+        handle=handle,
+        **{
+            keyword.keyword.replace(" ", "-"): float(keyword.score)
+            for keyword in keywords
+        },
+    )
     return keywords
 
 
 def get_emoji_match_scores(
-    client: DataScienceClient, keywords: list[KeywordData], num_matches: int = 10
-) -> list[KeywordScores]:
+    client: DataScienceClient,
+    handle: str,
+    keywords: list[KeywordData],
+    num_matches: int = 10,
+) -> list[KeywordEmojiData]:
     """
     Give a `client` that contains a list of emojis.
     And a set of `keywords` to match against the emojis.
     Get the "best of the best" matches of emojis to keywords.
     """
 
-    emoji_match_scores: list[KeywordScores] = []
+    emoji_match_scores: list[KeywordEmojiData] = []
 
     for keyword_data in keywords:
         _keyword: spacy_doc.Doc = client.nlp(keyword_data.keyword)
-        keyword_scores: list[KeywordScores] = []
+        keyword_scores: list[KeywordEmojiData] = []
 
         # Check each keyword against each emoji
         for emoji_index in range(len(client.emojis)):
@@ -176,7 +192,7 @@ def get_emoji_match_scores(
                 emoji_match_score = _keyword.similarity(client.emojis[emoji_index].nlp)
 
             keyword_scores.append(
-                KeywordScores(
+                KeywordEmojiData(
                     str(_keyword),
                     emoji_match_score,
                     client.emojis[emoji_index].emoji,
@@ -195,11 +211,19 @@ def get_emoji_match_scores(
     # This produces a "best of the best" list.
     emoji_match_scores.sort(key=lambda x: -x.score)
     emoji_match_scores = emoji_match_scores[:num_matches]
+    logger.info(
+        "emoji-match-scores",
+        handle=handle,
+        **{
+            emoji_match_score.keyword.replace(" ", "-"): float(emoji_match_score.score)
+            for emoji_match_score in emoji_match_scores
+        },
+    )
     return emoji_match_scores
 
 
 def join_description_and_emoji_score(
-    text_lines: list[str], emoji_match_scores: list[KeywordScores]
+    text_lines: list[str], emoji_match_scores: list[KeywordEmojiData]
 ):
     emoji_descriptions = []
 
