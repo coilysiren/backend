@@ -21,6 +21,23 @@ POPULARITY_PER_PAGE = 50
 MAX_POPULARITY_PAGES = 50
 
 
+class Profile(atproto.models.AppBskyActorDefs.ProfileViewDetailed):
+    def __dict__(self):
+        return {
+            "did": self.did,
+            "handle": self.handle,
+            "avatar": self.avatar,
+            "displayName": self.display_name,
+            "createdAt": self.created_at,
+            "viewerBlocking": self.viewer.blocking if self.viewer else None,
+            "viewerBlockedBy": self.viewer.blocked_by if self.viewer else None,
+            "viewerBlockingByList": (
+                self.viewer.blocking_by_list if self.viewer else None
+            ),
+            "description": self.description,  # The only thing that's different from the basic profile
+        }
+
+
 def init():
     client = atproto.Client("https://bsky.social")
     client.login(login=os.getenv("BSKY_USERNAME"), password=os.getenv("BSKY_PASSWORD"))
@@ -454,16 +471,12 @@ def _get_author_feed(
 def _get_profile(
     client: atproto.Client,
     handle: str,
-) -> dict[str, typing.Any]:
+) -> Profile:
     with _telemetry.tracer.start_as_current_span("bsky.get-profile") as span:
         span.set_attribute("handle", handle)
 
         # https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
-        response: atproto.models.AppBskyActorDefs.ProfileViewDetailed = (
-            client.get_profile(handle)
-        )
-        output = _format_detailed_profile(response)
-        return output
+        return client.get_profile(handle)
 
 
 def _get_followers(

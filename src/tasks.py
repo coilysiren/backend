@@ -15,13 +15,15 @@ from . import data_science as _data_science
 dotenv.load_dotenv()
 bsky_client = bsky.init()
 data_science_client = _data_science.DataScienceClient()
+
+# Send our logs to stderr so jq can parse stdout.
+# This only needs to happen here, inside of the CLI entrypoint.
+# That is, as opposed to the REST API entrypoint.
 structlog.configure(
     processors=[
         structlog.dev.ConsoleRenderer(),
     ],
-    logger_factory=structlog.PrintLoggerFactory(
-        file=sys.stderr
-    ),  # logs need to get to stderr so jq can parse stdout
+    logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
 )
 
 
