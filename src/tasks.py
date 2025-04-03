@@ -49,6 +49,11 @@ def _parse_kwargs(input_str: str) -> dict[str, any]:
 
 
 @invoke.task
+def clear_cache(ctx: invoke.Context, suffix: str):
+    cache.delete_keys(suffix)
+
+
+@invoke.task
 def bsky_cli(ctx: invoke.Context, path: str, kwargs: str = ""):
     cache_suffix = f"tasks.bsky-{path}-{kwargs}".replace(" ", "-")
     kwargs = _parse_kwargs(kwargs)

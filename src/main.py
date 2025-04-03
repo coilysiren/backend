@@ -14,7 +14,7 @@ bsky_client = bsky.init()
 @app.get("/")
 @limiter.limit("10/second")
 async def root(request: fastapi.Request):
-    return ["hello world"]
+    return ["hello", "world"]
 
 
 @app.get("/explode")
@@ -185,7 +185,9 @@ async def bsky_author_feed(request: fastapi.Request, handle: str):
     Get my posts
     """
     handle = bsky.handle_scrubber(handle)
-    (feed, cursor) = await bsky.get_author_feed(bsky_client, handle, request.query_params.get("cursor", None))
+    (feed, cursor) = await bsky.get_author_feed(
+        bsky_client, handle, request.query_params.get("cursor", None)
+    )
     return {
         "feed": feed,
         "next": cursor,
@@ -200,7 +202,9 @@ async def bsky_author_feed_text(request: fastapi.Request, handle: str):
     Get my posts
     """
     handle = bsky.handle_scrubber(handle)
-    (feed, cursor) = await bsky.get_author_feed_text(bsky_client, handle, request.query_params.get("cursor", None))
+    (feed, cursor) = await bsky.get_author_feed_text(
+        bsky_client, handle, request.query_params.get("cursor", None)
+    )
     return {
         "feed": feed,
         "next": cursor,
