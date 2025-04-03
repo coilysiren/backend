@@ -375,6 +375,7 @@ def _get_author_feed_text(
         response: atproto.models.AppBskyFeedGetAuthorFeed.Response = client.get_author_feed(
             handle,
             limit=100,
+            filter="posts_no_replies",
             cursor=cursor,
         )
         return ([post.post.record.text for post in response.feed], response.cursor)

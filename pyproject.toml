@@ -3,7 +3,7 @@ name = "backend"
 version = "0"
 description = ""
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.11,<3.12"
 dependencies = [
   "fastapi (>=0.115.12,<0.116.0)",
   "uvicorn[standard] (>=0.34.0,<0.35.0)",
@@ -20,8 +20,12 @@ dependencies = [
   "websockets (<14)",
   "invoke (>=2.2.0,<3.0.0)",
   "redis (>=5.2.1,<6.0.0)",
-  "torch (==2.2.2)",
-  "keybert (>=0.9.0,<0.10.0)",
+  "numpy (<2)",
+  "yake @ git+https://github.com/LIAAD/yake",
+  "nltk (>=3.9.1,<4.0.0)",
+  "spacy (>=3.8.5,<4.0.0)",
+  "pyyaml (>=6.0.2,<7.0.0)",
+  "scikit-learn (>=1.6.1,<2.0.0)",
 ]
 
 [build-system]

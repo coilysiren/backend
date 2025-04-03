@@ -12,7 +12,7 @@ brew install redis
 poetry config virtualenvs.in-project true
 poetry sync
 poetry self add poetry-plugin-export
-poetry export -f requirements.txt --output requirements.txt
+poetry export -f requirements.txt --output requirements.txt --without-hashes
 pip install -r requirements.txt
 ```
 
@@ -53,4 +53,10 @@ In a yet 3rd terminal, try this:
 
 ```bash
 invoke bsky --path app.bsky.feed.getTimeline --kwargs ""
+```
+
+### Data Processing
+
+```bash
+poetry run jupyter notebook
 ```

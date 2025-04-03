@@ -1,4 +1,5 @@
 import asyncio
+import os
 import json
 import sys
 
@@ -73,14 +74,48 @@ def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1)
     print(json.dumps(output, indent=2))
 
 
-# @invoke.task
-# def bsky_analyze_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1):
-#     """Analyze the author's feed texts."""
-#     output = asyncio.run(
-#         _bsky.get_author_feed_texts(
-#             bsky_client,
-#             handle,
-#             pages,
-#         )
-#     )
-#     print(json.dumps(output, indent=2))
+@invoke.task
+def emoji_parser(ctx: invoke.Context):
+    """
+    Given this format:
+
+    😀, grinning face
+    😀, grinning face, number 2
+
+    Create the following list:
+
+    [
+        {
+            "emoji": "😀",
+            "description": "grinning face",
+        },
+        {
+            "emoji": "😀",
+            "description": "grinning face, number 2",
+        }
+    ]
+    """
+
+    with open(os.path.join(os.path.expanduser("~"), "Downloads", "emojis.txt"), "r", encoding="utf-8") as _file:
+        contents = _file.readlines()
+
+    emojis = []
+    for line in contents:
+        line = line.strip()
+        if not line:
+            continue
+        split_line = line.split(",", 1)
+        if len(split_line) < 2:
+            print(f"Skipping line: {line}")
+            continue
+        emoji = split_line[0]
+        description = " ".join(split_line[1:])
+        emojis.append(
+            {
+                "emoji": emoji.strip(),
+                "description": description.strip(),
+            }
+        )
+
+    with open("emojis.json", "w", encoding="utf-8") as _file:
+        json.dump(emojis, _file, ensure_ascii=False, indent=2)
