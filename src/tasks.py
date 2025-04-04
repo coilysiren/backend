@@ -14,7 +14,6 @@ from . import data_science as _data_science
 
 dotenv.load_dotenv()
 bsky_client = bsky.init()
-data_science_client = _data_science.DataScienceClient()
 
 # Send our logs to stderr so jq can parse stdout.
 # This only needs to happen here, inside of the CLI entrypoint.
@@ -93,6 +92,8 @@ def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1)
 def bsky_emoji_summary(
     ctx: invoke.Context, handle: str, num_keywords=25, num_feed_pages=25
 ):
+    data_science_client = _data_science.DataScienceClient()
+
     # Get the author's feed texts
     text_lines = asyncio.run(
         bsky.get_author_feed_texts(bsky_client, handle, num_feed_pages)

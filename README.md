@@ -13,7 +13,9 @@ poetry config virtualenvs.in-project true
 poetry sync
 poetry self add poetry-plugin-export
 poetry export -f requirements.txt --output requirements.txt --without-hashes
-pip install -r requirements.txt
+
+# Optional:
+# pip install -r requirements.txt
 ```
 
 ## Local Development
@@ -39,6 +41,12 @@ Initialize the virtualenv like so
 poetry sync
 ```
 
+### Build and Deploy
+
+```bash
+poetry run invoke build
+```
+
 ### API developement
 
 In one terminal, run this:
@@ -54,12 +62,6 @@ curl "http://localhost:4000/bsky/coilysiren.me/profile" | jq # again, use your h
 ```
 
 ### Data Science
-
-```bash
-poetry run jupyter notebook
-```
-
-### Data Processing
 
 ```bash
 poetry run jupyter notebook

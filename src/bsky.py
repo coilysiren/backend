@@ -21,7 +21,45 @@ POPULARITY_PER_PAGE = 50
 MAX_POPULARITY_PAGES = 50
 
 
-class Profile(atproto.models.AppBskyActorDefs.ProfileViewDetailed):
+class ProfileDetailed(atproto.models.AppBskyActorDefs.ProfileViewDetailed):
+    def __dict__(self):
+        return {
+            "did": self.did,
+            "handle": self.handle,
+            "avatar": self.avatar,
+            "banner": self.banner,
+            "created_at": self.created_at,
+            "description": self.description,
+            "displayName": self.display_name,
+            "followersCount": self.followers_count,
+            "followsCount": self.follows_count,
+            "postCount": self.posts_count,
+            "pinnedPostCid": self.pinned_post.cid if self.pinned_post else None,
+            "pinnedPostUri": self.pinned_post.uri if self.pinned_post else None,
+            "viewerBlocking": self.viewer.blocking if self.viewer else None,
+            "viewerBlockedBy": self.viewer.blocked_by if self.viewer else None,
+            "viewerBlockingByList": (
+                self.viewer.blocking_by_list if self.viewer else None
+            ),
+            "viewerFollowedBy": self.viewer.followed_by if self.viewer else None,
+            "viewerFollowing": self.viewer.following if self.viewer else None,
+            "viewerKnownFollowersCount": (
+                self.viewer.known_followers.count
+                if self.viewer and self.viewer.known_followers
+                else 0
+            ),
+            "viewerKnownFollowers": (
+                [
+                    _format_profile_basic(follower)
+                    for follower in self.viewer.known_followers.followers
+                ]
+                if self.viewer and self.viewer.known_followers
+                else []
+            ),
+        }
+
+
+class Profile(atproto.models.AppBskyActorDefs.ProfileView):
     def __dict__(self):
         return {
             "did": self.did,
@@ -278,45 +316,6 @@ def _filter_profiles(
     ]
 
 
-def _format_detailed_profile(
-    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed,
-) -> dict[str, typing.Any]:
-    return {
-        "did": profile.did,
-        "handle": profile.handle,
-        "avatar": profile.avatar,
-        "banner": profile.banner,
-        "created_at": profile.created_at,
-        "description": profile.description,
-        "displayName": profile.display_name,
-        "followersCount": profile.followers_count,
-        "followsCount": profile.follows_count,
-        "postCount": profile.posts_count,
-        "pinnedPostCid": profile.pinned_post.cid if profile.pinned_post else None,
-        "pinnedPostUri": profile.pinned_post.uri if profile.pinned_post else None,
-        "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
-        "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
-        "viewerBlockingByList": (
-            profile.viewer.blocking_by_list if profile.viewer else None
-        ),
-        "viewerFollowedBy": profile.viewer.followed_by if profile.viewer else None,
-        "viewerFollowing": profile.viewer.following if profile.viewer else None,
-        "viewerKnownFollowersCount": (
-            profile.viewer.known_followers.count
-            if profile.viewer and profile.viewer.known_followers
-            else 0
-        ),
-        "viewerKnownFollowers": (
-            [
-                _format_profile_basic(follower)
-                for follower in profile.viewer.known_followers.followers
-            ]
-            if profile.viewer and profile.viewer.known_followers
-            else []
-        ),
-    }
-
-
 def _format_profile(
     profile: atproto.models.AppBskyActorDefs.ProfileView,
 ) -> dict[str, typing.Any]:
@@ -471,7 +470,7 @@ def _get_author_feed(
 def _get_profile(
     client: atproto.Client,
     handle: str,
-) -> Profile:
+) -> ProfileDetailed:
     with _telemetry.tracer.start_as_current_span("bsky.get-profile") as span:
         span.set_attribute("handle", handle)
 
