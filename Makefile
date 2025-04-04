@@ -1,3 +1,5 @@
+# Everything at the top level runs every time you do anything.
+# So only put fast commands up here.
 hash := $(shell git rev-parse --short HEAD)
 name := $(shell git config --get remote.origin.url | sd '^.*:(.*)\..*' '$$1')
 
@@ -29,6 +31,20 @@ build-docker: .build
 		-t $(name):$(hash) \
 		-t $(name):latest \
 		.
+
+## deploy the infrastructure required to host this repository
+infra:
+	pulumi up
+
+## publish the docker image to the registry
+publish:
+	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
+	$(eval account := $(shell pulumi stack output account | jq .email))
+	docker tag $(name):$(hash) $(repo)/$(name):$(hash)
+	gcloud auth print-access-token \
+		--impersonate-service-account $(account) | docker login \
+		-u oauth2accesstoken \
+		--password-stdin https://us-west2-docker.pkg.dev
 
 ## run project on your plain old machine
 #  see also: run-docker

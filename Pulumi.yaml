@@ -1,0 +1,11 @@
+name: backend
+backend:
+  url: gs://coilysiren-delpoy-pulumi-state?prefix=coilysiren/backend
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: typescript
