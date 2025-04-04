@@ -2,13 +2,20 @@
 
 ## Global Installs
 
+https://brew.sh/
+
+https://www.rust-lang.org/
+
 ```bash
 brew install pyenv
-brew install poetry
 brew install curl
 brew install jq
 brew install redis
 
+# https://github.com/chmln/sd
+cargo install sd
+
+pip install poetry
 poetry config virtualenvs.in-project true
 poetry sync
 poetry self add poetry-plugin-export
@@ -35,30 +42,43 @@ OTEL_SDK_DISABLED=true
 REDISCLOUD_URL=redis://default:@127.0.0.1:6379 # Would be nice if heroku just provisioned it as "REDIS_URL", but alas. And we should match heroku locally.
 ```
 
-Initialize the virtualenv like so
+### Build
+
+Native
 
 ```bash
 poetry sync
 ```
 
-### Build and Deploy
+Container
 
 ```bash
-poetry run invoke build
+docker build \
+  -t coilysiren/backend:$(git rev-parse --short HEAD) \
+  -t coilysiren/backend:latest \
+  .
+```
+
+```powershell
+docker build `
+  -t coilysiren/backend:$(git rev-parse --short HEAD) `
+  -t coilysiren/backend:latest `
+  .
 ```
 
 ### API developement
 
-In one terminal, run this:
+In one terminal, run either of these
 
 ```bash
 poetry run uvicorn src.main:app --reload --port 4000 --host 0.0.0.0
+docker run --name coilysiren/backend --rm coilysiren/backend
 ```
 
 In a second terminal, run this:
 
 ```bash
-curl "http://localhost:4000/bsky/coilysiren.me/profile" | jq # again, use your handle, not mine
+curl "http://localhost:4000/bsky/coilysiren.me/profile" | jq
 ```
 
 ### Data Science
