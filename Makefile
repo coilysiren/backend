@@ -40,11 +40,14 @@ infra:
 publish:
 	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
 	$(eval account := $(shell pulumi stack output account | jq .email))
-	docker tag $(name):$(hash) $(repo)/$(name):$(hash)
+	$(eval project := $(shell gcloud config get-value project))
+	$(eval url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
+	docker tag $(name):$(hash) $(url)
 	gcloud auth print-access-token \
 		--impersonate-service-account $(account) | docker login \
 		-u oauth2accesstoken \
 		--password-stdin https://us-west2-docker.pkg.dev
+	docker push $(url)
 
 ## run project on your plain old machine
 #  see also: run-docker
