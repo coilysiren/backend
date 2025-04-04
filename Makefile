@@ -41,13 +41,24 @@ publish:
 	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
 	$(eval account := $(shell pulumi stack output account | jq .email))
 	$(eval project := $(shell gcloud config get-value project))
-	$(eval url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
-	docker tag $(name):$(hash) $(url)
+	$(eval image-url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
+	docker tag $(name):$(hash) $(image-url)
 	gcloud auth print-access-token \
 		--impersonate-service-account $(account) | docker login \
 		-u oauth2accesstoken \
 		--password-stdin https://us-west2-docker.pkg.dev
-	docker push $(url)
+	docker push $(image-url)
+
+deploy:
+	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
+	$(eval project := $(shell gcloud config get-value project))
+	$(eval image-url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
+	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
+	gcloud container clusters get-credentials $(cluster) \
+			--region us-west2-a
+	env \
+		IMAGE_URL=$(image-url) \
+		envsubst < deployment.yaml | kubectl apply -f -
 
 ## run project on your plain old machine
 #  see also: run-docker
