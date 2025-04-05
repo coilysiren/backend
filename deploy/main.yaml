@@ -52,6 +52,21 @@ spec:
             name: ${NAME}
 
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${NAME}
+  namespace: ${NAME}
+spec:
+  selector:
+    app: ${NAME}
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  type: ClusterIP
+
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
