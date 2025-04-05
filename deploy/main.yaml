@@ -38,14 +38,14 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: ${NAME}-letsencrypt-staging
+  name: ${NAME}-letsencrypt
   namespace: ${NAME}
 spec:
   acme:
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    server: https://acme-v02.api.letsencrypt.org/directory
     email: ${EMAIL}
     privateKeySecretRef:
-      name: letsencrypt-staging
+      name: letsencrypt-production
     solvers:
       - http01:
           ingress:
@@ -75,7 +75,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: gce
     kubernetes.io/ingress.global-static-ip-name: ${NAME}
-    cert-manager.io/issuer: ${NAME}-letsencrypt-staging
+    cert-manager.io/issuer: ${NAME}-letsencrypt
 spec:
   tls:
     - secretName: ${NAME}-cert
