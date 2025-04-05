@@ -55,6 +55,14 @@ publish:
 		--password-stdin https://us-west2-docker.pkg.dev
 	docker push $(image-url)
 
+## login to the platforms necessary to deploy the application
+deploy-login:
+	gcloud auth login
+	gcloud auth application-default login
+	gcloud config set project coilysiren-deploy
+	pulumi login
+	pulumi stack select build
+
 ## deploy the infrastructure required to host this repository
 deploy-infra:
 	pulumi config set aws:region us-west-2
