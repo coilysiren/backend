@@ -1,7 +1,17 @@
+DEFAULT_GOAL := help
+.PHONY: deploy
+
+# Put static variables up here.
+# These would be nice inside of a config file or something.
+dns-zone := coilysiren.me
+dns-name := api.coilysiren.me
+email := coilysiren@gmail.com
+
 # Everything at the top level runs every time you do anything.
 # So only put fast commands up here.
 hash := $(shell git rev-parse --short HEAD)
 name := $(shell git config --get remote.origin.url | sd '^.*:(.*)\..*' '$$1')
+name-dashed := $(subst /,-,$(name))
 
 help:
 	@awk '/^## / \
@@ -32,10 +42,6 @@ build-docker: .build
 		-t $(name):latest \
 		.
 
-## deploy the infrastructure required to host this repository
-infra:
-	pulumi up
-
 ## publish the docker image to the registry
 publish:
 	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
@@ -49,16 +55,37 @@ publish:
 		--password-stdin https://us-west2-docker.pkg.dev
 	docker push $(image-url)
 
+## deploy the infrastructure required to host this repository
+deploy-infra:
+	pulumi config set DNS_ZONE $(dns-zone)
+	pulumi config set DNS_NAME $(dns-name)
+	pulumi up
+
+## deploy the cert secrets utilized by the application
+deploy-secrets-cert:
+	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
+	gcloud container clusters get-credentials $(cluster) \
+			--region us-west2-a
+	env \
+		NAME=$(name-dashed) \
+		envsubst < deploy/secrets-cert.yaml | kubectl apply -f -
+
+## deploy the application to the cluster
 deploy:
 	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
+	$(eval ip := $(shell pulumi stack output ip | jq -r .address))
 	$(eval project := $(shell gcloud config get-value project))
 	$(eval image-url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
 	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
 	gcloud container clusters get-credentials $(cluster) \
 			--region us-west2-a
 	env \
+		NAME=$(name-dashed) \
+		DNS_NAME=$(dns-name) \
+		EMAIL=$(email) \
 		IMAGE_URL=$(image-url) \
-		envsubst < deployment.yaml | kubectl apply -f -
+		IP_ADDRESS=$(ip) \
+		envsubst < deploy/main.yaml | kubectl apply -f -
 
 ## run project on your plain old machine
 #  see also: run-docker

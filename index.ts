@@ -1,9 +1,12 @@
 import * as gcp from "@pulumi/gcp";
+import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import * as simpleGit from "simple-git";
 import { GoogleAuth, OAuth2Client } from "google-auth-library";
 
 export = async () => {
+  let config = new pulumi.Config();
+
   // Get repository name
   const git = simpleGit.default();
   const remote = (await git.getConfig("remote.origin.url")).value || "";
@@ -45,5 +48,25 @@ export = async () => {
     member: `user:${email}`,
   });
 
-  return { repo, account };
+  // Create a global static IP address for this service's ingress
+  const ip = new gcp.compute.GlobalAddress(name, {
+    name: name,
+    addressType: "EXTERNAL",
+  });
+
+  // Get existing AWS route53 hosted zone
+  const hostedZone = aws.route53.getZone({
+    name: config.require("DNS_ZONE"),
+  });
+
+  // Create a CNAME record pointing the zone to the static IP address
+  new aws.route53.Record(name, {
+    zoneId: hostedZone.then((zone) => zone.id),
+    name: config.require("DNS_NAME"),
+    type: "A",
+    ttl: 60,
+    records: [ip.address],
+  });
+
+  return { repo, account, ip };
 };
