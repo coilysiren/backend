@@ -1,6 +1,7 @@
 import os
 import re
 import typing
+import dataclasses
 
 import atproto  # type: ignore
 import structlog
@@ -21,58 +22,74 @@ POPULARITY_PER_PAGE = 50
 MAX_POPULARITY_PAGES = 50
 
 
-class ProfileDetailed(atproto.models.AppBskyActorDefs.ProfileViewDetailed):
+@dataclasses.dataclass
+class ProfileDetailed(dict):
+    base: atproto.models.AppBskyActorDefs.ProfileViewDetailed
+
     def __dict__(self):
         return {
-            "did": self.did,
-            "handle": self.handle,
-            "avatar": self.avatar,
-            "banner": self.banner,
-            "created_at": self.created_at,
-            "description": self.description,
-            "displayName": self.display_name,
-            "followersCount": self.followers_count,
-            "followsCount": self.follows_count,
-            "postCount": self.posts_count,
-            "pinnedPostCid": self.pinned_post.cid if self.pinned_post else None,
-            "pinnedPostUri": self.pinned_post.uri if self.pinned_post else None,
-            "viewerBlocking": self.viewer.blocking if self.viewer else None,
-            "viewerBlockedBy": self.viewer.blocked_by if self.viewer else None,
-            "viewerBlockingByList": (
-                self.viewer.blocking_by_list if self.viewer else None
+            "did": self.base.did,
+            "handle": self.base.handle,
+            "avatar": self.base.avatar,
+            "banner": self.base.banner,
+            "created_at": self.base.created_at,
+            "description": self.base.description,
+            "displayName": self.base.display_name,
+            "followersCount": self.base.followers_count,
+            "followsCount": self.base.follows_count,
+            "postCount": self.base.posts_count,
+            "pinnedPostCid": (
+                self.base.pinned_post.cid if self.base.pinned_post else None
             ),
-            "viewerFollowedBy": self.viewer.followed_by if self.viewer else None,
-            "viewerFollowing": self.viewer.following if self.viewer else None,
+            "pinnedPostUri": (
+                self.base.pinned_post.uri if self.base.pinned_post else None
+            ),
+            "viewerBlocking": self.base.viewer.blocking if self.base.viewer else None,
+            "viewerBlockedBy": (
+                self.base.viewer.blocked_by if self.base.viewer else None
+            ),
+            "viewerBlockingByList": (
+                self.base.viewer.blocking_by_list if self.base.viewer else None
+            ),
+            "viewerFollowedBy": (
+                self.base.viewer.followed_by if self.base.viewer else None
+            ),
+            "viewerFollowing": self.base.viewer.following if self.base.viewer else None,
             "viewerKnownFollowersCount": (
-                self.viewer.known_followers.count
-                if self.viewer and self.viewer.known_followers
+                self.base.viewer.known_followers.count
+                if self.base.viewer and self.base.viewer.known_followers
                 else 0
             ),
             "viewerKnownFollowers": (
                 [
                     _format_profile_basic(follower)
-                    for follower in self.viewer.known_followers.followers
+                    for follower in self.base.viewer.known_followers.followers
                 ]
-                if self.viewer and self.viewer.known_followers
+                if self.base.viewer and self.base.viewer.known_followers
                 else []
             ),
         }
 
 
-class Profile(atproto.models.AppBskyActorDefs.ProfileView):
+@dataclasses.dataclass
+class Profile(dict):
+    base: atproto.models.AppBskyActorDefs.ProfileView
+
     def __dict__(self):
         return {
-            "did": self.did,
-            "handle": self.handle,
-            "avatar": self.avatar,
-            "displayName": self.display_name,
-            "createdAt": self.created_at,
-            "viewerBlocking": self.viewer.blocking if self.viewer else None,
-            "viewerBlockedBy": self.viewer.blocked_by if self.viewer else None,
-            "viewerBlockingByList": (
-                self.viewer.blocking_by_list if self.viewer else None
+            "did": self.base.did,
+            "handle": self.base.handle,
+            "avatar": self.base.avatar,
+            "displayName": self.base.display_name,
+            "createdAt": self.base.created_at,
+            "viewerBlocking": self.base.viewer.blocking if self.base.viewer else None,
+            "viewerBlockedBy": (
+                self.base.viewer.blocked_by if self.base.viewer else None
             ),
-            "description": self.description,  # The only thing that's different from the basic profile
+            "viewerBlockingByList": (
+                self.base.viewer.blocking_by_list if self.base.viewer else None
+            ),
+            "description": self.base.description,  # The only thing that's different from the basic profile
         }
 
 
@@ -196,13 +213,11 @@ async def credibilty(
 
 async def get_profile(
     client: atproto.Client, handle: str
-) -> typing.Dict[str, typing.Any]:
-    profile: atproto.models.AppBskyActorDefs.ProfileViewDetailed = (
-        await cache.get_or_return_cached(
-            "bsky.get-profile", handle, lambda: _get_profile(client, handle)
-        )
+) -> typing.Dict[str, ProfileDetailed]:
+    profile: ProfileDetailed = await cache.get_or_return_cached(
+        "bsky.get-profile", handle, lambda: _get_profile(client, handle)
     )
-    return {profile["did"]: profile}
+    return {profile.base.did: profile}
 
 
 async def get_followers(
@@ -475,7 +490,7 @@ def _get_profile(
         span.set_attribute("handle", handle)
 
         # https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
-        return client.get_profile(handle)
+        return ProfileDetailed(client.get_profile(handle))
 
 
 def _get_followers(
