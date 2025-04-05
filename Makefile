@@ -57,6 +57,9 @@ publish:
 
 ## deploy the infrastructure required to host this repository
 deploy-infra:
+	pulumi config set aws:region us-west-2
+	pulumi config set gcp:project coilysiren-deploy
+	pulumi config set gcp:region us-west2
 	pulumi config set DNS_ZONE $(dns-zone)
 	pulumi config set DNS_NAME $(dns-name)
 	pulumi up
