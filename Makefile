@@ -51,9 +51,9 @@ build-docker: .build .build-docker
 	$(eval account := $(shell pulumi stack output account | jq .email))
 	$(eval project := $(shell gcloud config get-value project))
 	$(eval image-url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
-	docker tag $(name):$(hash) $(image-url)
+	# docker tag $(name):$(hash) $(image-url)
 	gcloud auth print-access-token \
-		--impersonate-service-account $(account) | docker login \
+		--impersonate-service-account $(name-dashed)@coilysiren-deploy.iam.gserviceaccount.com | docker login \
 		-u oauth2accesstoken \
 		--password-stdin https://us-west2-docker.pkg.dev
 	docker push $(image-url)

@@ -68,10 +68,10 @@ export = async () => {
   });
 
   // Allow humans to act as the service account
-  new gcp.serviceaccount.IAMMember(`${nameDashed}-token-creator-humans`, {
+  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-humans`, {
     serviceAccountId: pulumi.interpolate`${account.id}`,
     role: "roles/iam.serviceAccountTokenCreator",
-    member: `user:${email}`,
+    members: [`user:${email}`],
   });
 
   new gcp.serviceaccount.IAMBinding(`${nameDashed}-github-actions`, {
