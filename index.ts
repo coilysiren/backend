@@ -88,6 +88,13 @@ export = async () => {
     ],
   });
 
+  // Grant service account token creator role
+  new gcp.projects.IAMBinding(`${nameDashed}-token-creator`, {
+    project: gcp.config.project || "",
+    role: "roles/iam.serviceAccountTokenCreator",
+    members: [pulumi.interpolate`serviceAccount:${account.email}`],
+  });
+
   // Create a global static IP address for this service's ingress
   const ip = new gcp.compute.GlobalAddress(nameDashed, {
     name: nameDashed,
