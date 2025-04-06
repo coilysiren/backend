@@ -17,7 +17,7 @@ help:
 	@awk '/^## / \
 		{ if (c) {print c}; c=substr($$0, 4); next } \
 			c && /(^[[:alpha:]][[:alnum:]_-]+:)/ \
-		{print $$1, "\t", c; c=0} \
+		{printf "%-30s %s\n", $$1, c; c=0} \
 			END { print c }' $(MAKEFILE_LIST)
 
 # rebuild requirements.txt whenever pyproject.toml changes
@@ -64,14 +64,14 @@ login:
 	pulumi login
 	pulumi stack select build
 
-## deploy the infrastructure required to host this repository
+## deploy the infrastructure required to operate and host this repository, should only be run by humans
 deploy-infra:
 	pulumi config set aws:region us-west-2
 	pulumi config set gcp:project coilysiren-deploy
 	pulumi config set gcp:region us-west2
-	pulumi config set DNS_ZONE $(dns-zone)
-	pulumi config set DNS_NAME $(dns-name)
-	pulumi up
+	pulumi config set dns-zone $(dns-zone)
+	pulumi config set dns-name $(dns-name)
+	pulumi up --yes
 
 ## deploy the cert secrets utilized by the application
 deploy-secrets-cert:
