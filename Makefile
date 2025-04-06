@@ -48,18 +48,18 @@ build-docker: .build .build-docker
 
 .publish:
 	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
-	$(eval account := $(shell pulumi stack output account | jq .email))
 	$(eval project := $(shell gcloud config get-value project))
 	$(eval image-url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
-	# docker tag $(name):$(hash) $(image-url)
+	docker tag $(name):$(hash) $(image-url)
+	docker push $(image-url)
+
+## publish the docker image to the registry
+publish: build-docker
 	gcloud auth print-access-token \
 		--impersonate-service-account $(name-dashed)@coilysiren-deploy.iam.gserviceaccount.com | docker login \
 		-u oauth2accesstoken \
 		--password-stdin https://us-west2-docker.pkg.dev
-	docker push $(image-url)
-
-## publish the docker image to the registry
-publish: build-docker .publish
+	$(MAKE) .publish
 
 ## login to the platforms necessary to deploy the application
 login:

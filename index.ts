@@ -72,8 +72,25 @@ export = async () => {
     members: [pulumi.interpolate`serviceAccount:${account.email}`],
   });
 
-  // Grant service account token creator role
-  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-github`, {
+  // Allow Github Actions to impersonate service accounts
+  // This permission is too broad, but I can't get it to work otherwise.
+  new gcp.projects.IAMBinding(`${nameDashed}-token-creator-github`, {
+    project: gcp.config.project || "",
+    role: "roles/iam.serviceAccountTokenCreator",
+    members: [
+      pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`,
+    ],
+  });
+
+  // Allow service account to create tokens for itself
+  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-itself`, {
+    serviceAccountId: pulumi.interpolate`${account.id}`,
+    role: "roles/iam.serviceAccountUser",
+    members: [pulumi.interpolate`serviceAccount:${account.email}`],
+  });
+
+  // Allow service account to generate access tokens
+  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-itself-2`, {
     serviceAccountId: pulumi.interpolate`${account.id}`,
     role: "roles/iam.serviceAccountTokenCreator",
     members: [pulumi.interpolate`serviceAccount:${account.email}`],
@@ -84,15 +101,6 @@ export = async () => {
     serviceAccountId: pulumi.interpolate`${account.id}`,
     role: "roles/iam.serviceAccountTokenCreator",
     members: [`user:${email}`],
-  });
-
-  // Allow GitHub Actions to impersonate the service account
-  new gcp.serviceaccount.IAMBinding(`${nameDashed}-workload-identity`, {
-    serviceAccountId: pulumi.interpolate`${account.id}`,
-    role: "roles/iam.workloadIdentityUser",
-    members: [
-      pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`,
-    ],
   });
 
   // Allow the service account to read the state bucket
