@@ -16,7 +16,7 @@ jobs:
       - uses: google-github-actions/auth@v2
         with:
           token_format: "access_token"
-          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ github.repository }}/"
+          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ github.repository }}/providers/${{ github.repository }}"
           service_account: "coilysiren-backend@coilysiren-deploy.iam.gserviceaccount.com"
       - uses: google-github-actions/setup-gcloud@v2
       - run: gcloud projects list
