@@ -25,3 +25,5 @@ jobs:
           gcloud auth list
           gcloud config list
           gcloud projects list
+      - run: make .build-docker
+      - run: make publish

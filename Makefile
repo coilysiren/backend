@@ -33,9 +33,7 @@ build-native: .build
 	poetry config virtualenvs.in-project true
 	poetry sync
 
-## build project inside of a docker container
-#  see also: build-native
-build-docker: .build
+.build-docker:
 	docker build \
 		--progress plain \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
@@ -43,6 +41,11 @@ build-docker: .build
 		-t $(name):$(hash) \
 		-t $(name):latest \
 		.
+
+## build project inside of a docker container
+#  see also: build-native
+build-docker: .build
+	$(MAKE) .build-docker
 
 ## publish the docker image to the registry
 publish:
