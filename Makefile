@@ -10,7 +10,7 @@ email := coilysiren@gmail.com
 # Everything at the top level runs every time you do anything.
 # So only put fast commands up here.
 hash := $(shell git rev-parse --short HEAD)
-name := $(shell git config --get remote.origin.url | sd '^.*:(.*)\..*' '$$1')
+name := $(shell git config --get remote.origin.url | sed -E 's/^.*:(.*)\..*$$/\1/')
 name-dashed := $(subst /,-,$(name))
 
 help:
