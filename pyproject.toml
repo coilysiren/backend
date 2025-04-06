@@ -30,7 +30,8 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-package-mode = false
+package-mode = true
+packages = [{include = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
@@ -39,3 +40,4 @@ isort = "^6.0.1"
 ptipython = "^1.0.1"
 notebook = "^7.3.3"
 types-requests = "^2.32.0.20250328"
+pytest = "^8.3.5"
