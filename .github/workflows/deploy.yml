@@ -17,13 +17,8 @@ jobs:
       - uses: google-github-actions/auth@v2
         with:
           token_format: "access_token"
-          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.NAME_DASHED }}/providers/${{ env.NAME_DASHED }}"
-          service_account: "${{ env.NAME_DASHED }}@coilysiren-deploy.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/coilysiren-backend/providers/coilysiren-backend"
+          service_account: "coilysiren-backend@coilysiren-deploy.iam.gserviceaccount.com"
       - uses: google-github-actions/setup-gcloud@v2
-      - name: Verify GCP Auth
-        run: |
-          gcloud auth list
-          gcloud config list
-          gcloud projects list
       - run: make .build-docker
-      - run: make publish
+      - run: make .publish
