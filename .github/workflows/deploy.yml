@@ -20,5 +20,5 @@ jobs:
           workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/coilysiren-backend/providers/coilysiren-backend"
           service_account: "coilysiren-backend@coilysiren-deploy.iam.gserviceaccount.com"
       - uses: google-github-actions/setup-gcloud@v2
-      - run: make .build-docker
-      - run: make .publish
+      - run: name=coilysiren-backend make .build-docker
+      - run: name=coilysiren-backend make .publish

@@ -3,15 +3,15 @@ DEFAULT_GOAL := help
 
 # Put static variables up here.
 # These would be nice inside of a config file or something.
-dns-zone := coilysiren.me
-dns-name := api.coilysiren.me
-email := coilysiren@gmail.com
+dns-zone ?= coilysiren.me
+dns-name ?= api.coilysiren.me
+email ?= coilysiren@gmail.com
 
 # Everything at the top level runs every time you do anything.
 # So only put fast commands up here.
-hash := $(shell git rev-parse --short HEAD)
-name := $(shell git config --get remote.origin.url | sed -E 's/^.*:(.*)\..*$$/\1/')
-name-dashed := $(subst /,-,$(name))
+hash ?= $(shell git rev-parse --short HEAD)
+name ?= $(shell git config --get remote.origin.url | sed -E 's/^.*:(.*)\..*$$/\1/')
+name-dashed ?= $(subst /,-,$(name))
 
 help:
 	@awk '/^## / \
