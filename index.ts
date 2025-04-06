@@ -95,6 +95,13 @@ export = async () => {
     ],
   });
 
+  // Allow the service account to read the state bucket
+  new gcp.storage.BucketIAMBinding(`${nameDashed}-state-bucket-reader`, {
+    bucket: "coilysiren-deploy-pulumi-state",
+    role: "roles/storage.objectViewer",
+    members: [pulumi.interpolate`serviceAccount:${account.email}`],
+  });
+
   // Create a global static IP address for this service's ingress
   const ip = new gcp.compute.GlobalAddress(nameDashed, {
     name: nameDashed,
