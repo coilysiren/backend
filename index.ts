@@ -72,6 +72,13 @@ export = async () => {
     members: [pulumi.interpolate`serviceAccount:${account.email}`],
   });
 
+  // Grant service account token creator role
+  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-github`, {
+    serviceAccountId: pulumi.interpolate`${account.id}`,
+    role: "roles/iam.serviceAccountTokenCreator",
+    members: [pulumi.interpolate`serviceAccount:${account.email}`],
+  });
+
   // Allow humans to act as the service account
   new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-humans`, {
     serviceAccountId: pulumi.interpolate`${account.id}`,
@@ -80,19 +87,12 @@ export = async () => {
   });
 
   // Allow GitHub Actions to impersonate the service account
-  new gcp.serviceaccount.IAMBinding(`${nameDashed}-github-actions`, {
+  new gcp.serviceaccount.IAMBinding(`${nameDashed}-workload-identity`, {
     serviceAccountId: pulumi.interpolate`${account.id}`,
     role: "roles/iam.workloadIdentityUser",
     members: [
       pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`,
     ],
-  });
-
-  // Grant service account token creator role
-  new gcp.projects.IAMBinding(`${nameDashed}-token-creator`, {
-    project: gcp.config.project || "",
-    role: "roles/iam.serviceAccountTokenCreator",
-    members: [pulumi.interpolate`serviceAccount:${account.email}`],
   });
 
   // Create a global static IP address for this service's ingress
