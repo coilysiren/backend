@@ -33,7 +33,7 @@ export = async () => {
     {
       displayName: nameDashed,
       description: `Workload identity provider for ${nameDashed}`,
-      workloadIdentityPoolId: pool.workloadIdentityPoolId, // Changed from pool.name to pool.workloadIdentityPoolId
+      workloadIdentityPoolId: pool.workloadIdentityPoolId,
       workloadIdentityPoolProviderId: nameDashed,
       oidc: {
         issuerUri: "https://token.actions.githubusercontent.com",
@@ -43,7 +43,7 @@ export = async () => {
         "attribute.actor": "assertion.actor",
         "attribute.repository": "assertion.repository",
       },
-      attributeCondition: `attribute.repository == "${name}"`,
+      attributeCondition: `attribute.repository == ${name}`,
     }
   );
 
