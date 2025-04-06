@@ -16,7 +16,7 @@ jobs:
       - uses: google-github-actions/auth@v2
         with:
           token_format: "access_token"
-          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ github.event.repository.name }}/providers/${{ github.event.repository.name }}"
           service_account: "${{ secrets.GCP_ACCOUNT_NAME }}@${{ secrets.GCP_PROJECT_NAME }}.iam.gserviceaccount.com"
       - uses: google-github-actions/setup-gcloud@v2
       - run: gcloud projects list
