@@ -1,5 +1,4 @@
-# On every push to the main branch, deploy the infrastructure required to host this repository
-name: Deploy Infrastructure
+name: deploy
 
 on:
   push:
