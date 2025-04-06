@@ -21,6 +21,10 @@ export = async () => {
   const tokenInfo = await oAuth2Client.getTokenInfo(token.token as string);
   const email = tokenInfo.email;
 
+  // Get project number
+  const project = gcp.organizations.getProject({});
+  const projectNumber = project.then((p) => p.number);
+
   // Create a workload identity pool
   const pool = new gcp.iam.WorkloadIdentityPool(nameDashed, {
     workloadIdentityPoolId: nameDashed,
@@ -43,7 +47,7 @@ export = async () => {
         "attribute.actor": "assertion.actor",
         "attribute.repository": "assertion.repository",
       },
-      attributeCondition: `attribute.repository == ${name}`,
+      attributeCondition: `attribute.repository == "${name}"`,
     }
   );
 
@@ -52,7 +56,8 @@ export = async () => {
     format: "docker",
     repositoryId: nameDashed,
   });
-  // Create a serice account for pushing our docker images
+
+  // Create a service account for pushing our docker images
   const account = new gcp.serviceaccount.Account(nameDashed, {
     accountId: nameDashed,
     displayName: `Allows deploying the ${name} service`,
@@ -74,11 +79,12 @@ export = async () => {
     members: [`user:${email}`],
   });
 
+  // Allow GitHub Actions to impersonate the service account
   new gcp.serviceaccount.IAMBinding(`${nameDashed}-github-actions`, {
     serviceAccountId: pulumi.interpolate`${account.id}`,
     role: "roles/iam.workloadIdentityUser",
     members: [
-      pulumi.interpolate`principalSet://iam.googleapis.com/${pool.name}/attribute.repository/${name}`,
+      pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`,
     ],
   });
 
