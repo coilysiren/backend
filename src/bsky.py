@@ -12,8 +12,7 @@ from . import telemetry as _telemetry
 telemetry = _telemetry.Telemetry()
 logger = structlog.get_logger()
 
-# MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of follows to list
-FOLLOWS_PER_PAGE = 100  # the max
+# MAX_FOLLOWS_PAGES * 100 is the max number of follows to list
 MAX_FOLLOWS_PAGES = 25
 
 SUGGESTIONS_PER_PAGE = 10
@@ -120,7 +119,7 @@ async def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str,
     def _get_followers_request():
         response = requests.get(
             "https://bsky.social/xrpc/app.bsky.graph.getFollowers",
-            params={"actor": handle, "limit": FOLLOWS_PER_PAGE},
+            params={"actor": handle, "limit": 100},
             headers={"Authorization": f"Bearer {client._session.access_jwt}"},
             timeout=10,
         )
@@ -136,7 +135,7 @@ async def get_following(client: atproto.Client, handle: str) -> typing.Dict[str,
     def _get_following_request():
         response = requests.get(
             "https://bsky.social/xrpc/app.bsky.graph.getFollows",
-            params={"actor": handle, "limit": FOLLOWS_PER_PAGE},
+            params={"actor": handle, "limit": 100},
             headers={"Authorization": f"Bearer {client._session.access_jwt}"},
             timeout=10,
         )
@@ -152,7 +151,7 @@ async def get_following_handles(client: atproto.Client, handle: str) -> list[str
     def _get_following_handles_request():
         response = requests.get(
             "https://bsky.social/xrpc/app.bsky.graph.getFollows",
-            params={"actor": handle, "limit": FOLLOWS_PER_PAGE},
+            params={"actor": handle, "limit": 100},
             headers={"Authorization": f"Bearer {client._session.access_jwt}"},
             timeout=10,
         )

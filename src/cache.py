@@ -13,7 +13,7 @@ import structlog
 from . import telemetry
 
 _telemetry = telemetry.Telemetry()
-cache: typing.Dict[str, any] = {}
+cache: dict[str, typing.Any] = {}
 logger = structlog.get_logger()
 logging.basicConfig(stream=sys.stdout)
 
@@ -34,14 +34,10 @@ def delete_keys(suffix: str) -> None:
         logger.info("cache", adjective="delete", key=key.decode("utf-8"))
 
 
-async def get_or_return_cached_request(
-    prefix: str, suffix: str, func: typing.Callable[[], requests.Response]
-) -> dict:
+async def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Callable[[], requests.Response]) -> dict:
     key = f"{prefix}-{suffix}"
     expiry = 86400  # 1 day
-    with _telemetry.tracer.start_as_current_span(
-        "get-or-return-cached-request"
-    ) as span:
+    with _telemetry.tracer.start_as_current_span("get-or-return-cached-request") as span:
         span.set_attribute("key", key)
         span.set_attribute("prefix", prefix)
         span.set_attribute("suffix", suffix)
@@ -62,7 +58,7 @@ async def get_or_return_cached_request(
         if output is not None:
             span.set_attribute("adjective", "hit")
             logger.info("cache", adjective="hit", prefix=prefix, suffix=suffix, key=key)
-            output = json.loads(output or "{}")
+            output = json.loads(output)
             return output
         else:
             span.set_attribute("adjective", "miss")
@@ -77,9 +73,7 @@ async def get_or_return_cached_request(
                     key=key,
                     status_code=response.status_code,
                 )
-                raise requests.RequestException(
-                    f"Request failed with status code {response.status_code}"
-                )
+                raise requests.RequestException(f"Request failed with status code {response.status_code}")
             try:
                 output_json = response.json()
             except requests.exceptions.JSONDecodeError as exc:
@@ -111,9 +105,7 @@ async def get_or_return_cached_request(
             return output_json
 
 
-async def get_or_return_cached(
-    prefix: str, suffix: str, func: typing.Callable
-) -> typing.Any:
+async def get_or_return_cached(prefix: str, suffix: str, func: typing.Callable) -> typing.Any:
     key = f"{prefix}-{suffix}"
     expiry = 86400  # 1 day
     with _telemetry.tracer.start_as_current_span("get-or-return-cached") as span:
@@ -138,7 +130,7 @@ async def get_or_return_cached(
         if output is not None:
             span.set_attribute("adjective", "hit")
             logger.info("cache", adjective="hit", prefix=prefix, suffix=suffix, key=key)
-            output = json.loads(output or "{}")
+            output = json.loads(output)
             return output
         else:
             span.set_attribute("adjective", "miss")
@@ -150,7 +142,5 @@ async def get_or_return_cached(
             except Exception as exc:
                 pass
 
-            logger.info(
-                "cache", adjective="miss", prefix=prefix, suffix=suffix, key=key
-            )
+            logger.info("cache", adjective="miss", prefix=prefix, suffix=suffix, key=key)
             return output

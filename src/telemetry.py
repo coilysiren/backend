@@ -17,7 +17,7 @@ class Telemetry(object):
     # https://opentelemetry.io/docs/languages/python/instrumentation/
 
     initalized = False
-    tracer: otel_trace.Tracer = None
+    tracer: otel_trace.Tracer
     resource: otel_resources.Resource = otel_resources.Resource.create(
         {"service.name": "backend", "cloud.provider": "heroku"}
     )

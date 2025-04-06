@@ -16,9 +16,9 @@ import starlette.requests
 import starlette.responses
 import structlog
 
-from . import telemetry
+from . import telemetry as _telemetry
 
-telemetry = telemetry.Telemetry()
+telemetry = _telemetry.Telemetry()
 logger = structlog.get_logger()
 
 

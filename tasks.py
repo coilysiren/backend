@@ -1,6 +1,7 @@
 import asyncio
 import json
 import sys
+import typing
 
 import dotenv
 import invoke
@@ -25,10 +26,10 @@ structlog.configure(
 )
 
 
-def _parse_kwargs(input_str: str) -> dict[str, any]:
+def _parse_kwargs(input_str: str) -> dict[str, typing.Any]:
     """Parses a CLI-friendly 'key1 value1 key2 value2' string into a dictionary."""
     tokens = input_str.split()
-    parsed_data = {}
+    parsed_data: dict[str, typing.Any] = {}
 
     i = 0
     while i < len(tokens):
