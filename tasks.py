@@ -56,19 +56,22 @@ def clear_cache(ctx: invoke.Context, suffix: str):
 @invoke.task
 def bsky_cli(ctx: invoke.Context, path: str, kwargs: str = ""):
     cache_suffix = f"tasks.bsky-{path}-{kwargs}".replace(" ", "-")
-    kwargs = _parse_kwargs(kwargs)
-    token = bsky_client._session.access_jwt
-    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
+
+    def _get_request():
+        response = requests.get(
+            f"https://bsky.social/xrpc/{path}",
+            headers={"Accept": "application/json", "Authorization": f"Bearer {bsky_client._session.access_jwt}"},
+            timeout=30,
+            params=_parse_kwargs(kwargs),
+        )
+        response.raise_for_status()
+        return response
+
     response = asyncio.run(
         cache.get_or_return_cached_request(
             "tasks.bsky",
             cache_suffix,
-            lambda: requests.get(
-                f"https://bsky.social/xrpc/{path}",
-                headers=headers,
-                timeout=30,
-                params=kwargs,
-            ),
+            _get_request,
         )
     )
     print(json.dumps(response, indent=2))
@@ -88,27 +91,21 @@ def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1)
 
 
 @invoke.task
-def bsky_emoji_summary(
-    ctx: invoke.Context, handle: str, num_keywords=25, num_feed_pages=25
-):
+def bsky_emoji_summary(ctx: invoke.Context, handle: str, num_keywords=25, num_feed_pages=25):
     data_science_client = _data_science.DataScienceClient()
 
     # Get the author's feed texts
-    text_lines = asyncio.run(
-        bsky.get_author_feed_texts(bsky_client, handle, num_feed_pages)
-    )
+    text_lines = asyncio.run(bsky.get_author_feed_texts(bsky_client, handle, num_feed_pages))
     text_joined = "\n".join(text_lines)
 
     # Get the keywords and emoji match scores
     keywords: list[_data_science.KeywordData] = _data_science.extract_keywords(
         data_science_client, handle, text_joined, num_keywords
     )
-    emoji_match_scores: list[_data_science.KeywordEmojiData] = (
-        _data_science.get_emoji_match_scores(data_science_client, handle, keywords)
+    emoji_match_scores: list[_data_science.KeywordEmojiData] = _data_science.get_emoji_match_scores(
+        data_science_client, handle, keywords
     )
-    emoji_descriptions = _data_science.join_description_and_emoji_score(
-        text_lines, emoji_match_scores
-    )
+    emoji_descriptions = _data_science.join_description_and_emoji_score(text_lines, emoji_match_scores)
 
     # Display the results
     print()

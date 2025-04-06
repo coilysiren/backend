@@ -38,6 +38,8 @@ build-native: .build
 build-docker: .build
 	docker build \
 		--progress plain \
+		--build-arg BUILDKIT_INLINE_CACHE=1 \
+		--cache-from $(name):latest \
 		-t $(name):$(hash) \
 		-t $(name):latest \
 		.

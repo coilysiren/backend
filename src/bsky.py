@@ -1,14 +1,15 @@
 import os
 import re
 import typing
-import dataclasses
+import requests
 
 import atproto  # type: ignore
 import structlog
 
-from . import cache, telemetry
+from . import cache
+from . import telemetry as _telemetry
 
-_telemetry = telemetry.Telemetry()
+telemetry = _telemetry.Telemetry()
 logger = structlog.get_logger()
 
 # MAX_FOLLOWS_PAGES * FOLLOWS_PER_PAGE is the max number of follows to list
@@ -22,86 +23,13 @@ POPULARITY_PER_PAGE = 50
 MAX_POPULARITY_PAGES = 50
 
 
-@dataclasses.dataclass
-class ProfileDetailed(dict):
-    base: atproto.models.AppBskyActorDefs.ProfileViewDetailed
-
-    def __dict__(self):
-        return {
-            "did": self.base.did,
-            "handle": self.base.handle,
-            "avatar": self.base.avatar,
-            "banner": self.base.banner,
-            "created_at": self.base.created_at,
-            "description": self.base.description,
-            "displayName": self.base.display_name,
-            "followersCount": self.base.followers_count,
-            "followsCount": self.base.follows_count,
-            "postCount": self.base.posts_count,
-            "pinnedPostCid": (
-                self.base.pinned_post.cid if self.base.pinned_post else None
-            ),
-            "pinnedPostUri": (
-                self.base.pinned_post.uri if self.base.pinned_post else None
-            ),
-            "viewerBlocking": self.base.viewer.blocking if self.base.viewer else None,
-            "viewerBlockedBy": (
-                self.base.viewer.blocked_by if self.base.viewer else None
-            ),
-            "viewerBlockingByList": (
-                self.base.viewer.blocking_by_list if self.base.viewer else None
-            ),
-            "viewerFollowedBy": (
-                self.base.viewer.followed_by if self.base.viewer else None
-            ),
-            "viewerFollowing": self.base.viewer.following if self.base.viewer else None,
-            "viewerKnownFollowersCount": (
-                self.base.viewer.known_followers.count
-                if self.base.viewer and self.base.viewer.known_followers
-                else 0
-            ),
-            "viewerKnownFollowers": (
-                [
-                    _format_profile_basic(follower)
-                    for follower in self.base.viewer.known_followers.followers
-                ]
-                if self.base.viewer and self.base.viewer.known_followers
-                else []
-            ),
-        }
-
-
-@dataclasses.dataclass
-class Profile(dict):
-    base: atproto.models.AppBskyActorDefs.ProfileView
-
-    def __dict__(self):
-        return {
-            "did": self.base.did,
-            "handle": self.base.handle,
-            "avatar": self.base.avatar,
-            "displayName": self.base.display_name,
-            "createdAt": self.base.created_at,
-            "viewerBlocking": self.base.viewer.blocking if self.base.viewer else None,
-            "viewerBlockedBy": (
-                self.base.viewer.blocked_by if self.base.viewer else None
-            ),
-            "viewerBlockingByList": (
-                self.base.viewer.blocking_by_list if self.base.viewer else None
-            ),
-            "description": self.base.description,  # The only thing that's different from the basic profile
-        }
-
-
 def init():
     client = atproto.Client("https://bsky.social")
     client.login(login=os.getenv("BSKY_USERNAME"), password=os.getenv("BSKY_PASSWORD"))
     return client
 
 
-async def popularity(
-    client: atproto.Client, me: str, index=0
-) -> tuple[dict[str, int], int]:
+async def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str, int], int]:
     """
     For every person I follow,
     list people who they follow,
@@ -123,27 +51,19 @@ async def popularity(
         # And remove the people I follow
         for thier_follow in following:
             thier_follow.strip().lower()
-            if (
-                thier_follow
-                and thier_follow != "handle.invalid"
-                and thier_follow != "bsky.app"
-            ):
+            if thier_follow and thier_follow != "handle.invalid" and thier_follow != "bsky.app":
                 if popularity_dict.get(thier_follow) is None:
                     popularity_dict[thier_follow] = 1
                 else:
                     popularity_dict[thier_follow] += 1
 
     # return -1 next index (indicating the we are done) if we are at the end of the list
-    next_index = (
-        next_index if next_index < POPULARITY_PER_PAGE * MAX_POPULARITY_PAGES else -1
-    )
+    next_index = next_index if next_index < POPULARITY_PER_PAGE * MAX_POPULARITY_PAGES else -1
 
     return (popularity_dict, next_index)
 
 
-async def suggestions(
-    client: atproto.Client, me: str, index=0
-) -> tuple[list[str], int]:
+async def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[str], int]:
     """
     For everyone that I follow,
     list who they follow that I don't follow.
@@ -176,109 +96,112 @@ async def suggestions(
                 suggestions.append(thier_follow)
 
     # return -1 next index (indicating the we are done) if we are at the end of the list
-    next_index = (
-        next_index if next_index < SUGGESTIONS_PER_PAGE * MAX_SUGGESTION_PAGES else -1
-    )
+    next_index = next_index if next_index < SUGGESTIONS_PER_PAGE * MAX_SUGGESTION_PAGES else -1
 
     return (suggestions, next_index)
 
 
-async def credibilty_percent(client: atproto.Client, me: str, them: str) -> float:
-    """
-    For some person I follow,
-    show who lends 'credibility' to them in the form of a follow,
-    as of of a percent of their followers.
-    1 (eg. 100%) credibility would mean that all of their followers are people I follow.
-    """
-    thier_followers = await get_followers(
-        client, them
-    )  # this is requested twice, but cached
-    lenders = await credibilty(client, me, them)
-    percent = len(lenders) / len(thier_followers)
-    return percent
-
-
-async def credibilty(
-    client: atproto.Client, me: str, them: str
-) -> typing.Dict[str, typing.Any]:
-    """
-    For some person I follow,
-    show who lends 'credibility' to them in the form of a follow
-    """
-    my_following = await get_following(client, me)
-    thier_followers = await get_followers(client, them)
-    lenders = {k: v for k, v in my_following.items() if k in thier_followers}
-    return lenders
-
-
-async def get_profile(
-    client: atproto.Client, handle: str
-) -> typing.Dict[str, ProfileDetailed]:
-    profile: ProfileDetailed = await cache.get_or_return_cached(
-        "bsky.get-profile", handle, lambda: _get_profile(client, handle)
-    )
-    return {profile.base.did: profile}
-
-
-async def get_followers(
-    client: atproto.Client, handle: str
-) -> typing.Dict[str, typing.Any]:
-    follows = {
-        profile["did"]: profile
-        for profile in await cache.get_or_return_cached(
-            "bsky.get-followers", handle, lambda: _get_followers(client, handle)
+async def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, dict]:
+    def _get_profile_request():
+        response = requests.get(
+            "https://bsky.social/xrpc/app.bsky.actor.getProfile",
+            params={"actor": handle},
+            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
+            timeout=10,
         )
-    }
+        response.raise_for_status()
+        return response
+
+    output = await cache.get_or_return_cached_request("bsky.get-profile", handle, _get_profile_request)
+    return {output["did"]: output}
+
+
+async def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+    def _get_followers_request():
+        response = requests.get(
+            "https://bsky.social/xrpc/app.bsky.graph.getFollowers",
+            params={"actor": handle, "limit": FOLLOWS_PER_PAGE},
+            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response
+
+    output = await cache.get_or_return_cached_request("bsky.get-followers", handle, _get_followers_request)
+    follows = {profile["did"]: profile for profile in output.get("followers", [])}
     return follows
 
 
-async def get_following(
-    client: atproto.Client, handle: str
-) -> typing.Dict[str, typing.Any]:
-    follows = {
-        profile["did"]: profile
-        for profile in await cache.get_or_return_cached(
-            "bsky.get-following", handle, lambda: _get_following(client, handle)
+async def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+    def _get_following_request():
+        response = requests.get(
+            "https://bsky.social/xrpc/app.bsky.graph.getFollows",
+            params={"actor": handle, "limit": FOLLOWS_PER_PAGE},
+            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
+            timeout=10,
         )
-    }
+        response.raise_for_status()
+        return response
+
+    output = await cache.get_or_return_cached_request("bsky.get-following", handle, _get_following_request)
+    follows = {profile["did"]: profile for profile in output.get("follows", [])}
     return follows
 
 
 async def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
-    output = await cache.get_or_return_cached(
-        "bsky.get-following-handles",
-        handle,
-        lambda: _get_following_handles(client, handle),
+    def _get_following_handles_request():
+        response = requests.get(
+            "https://bsky.social/xrpc/app.bsky.graph.getFollows",
+            params={"actor": handle, "limit": FOLLOWS_PER_PAGE},
+            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response
+
+    output = await cache.get_or_return_cached_request(
+        "bsky.get-following-handles", handle, _get_following_handles_request
     )
-    return output
+    return [profile["handle"] for profile in output.get("follows", [])]
 
 
 async def get_author_feed(
     client: atproto.Client, handle: str, cursor: str = ""
 ) -> tuple[list[dict[str, typing.Any]], str]:
-    return await cache.get_or_return_cached(
-        f"bsky.get-author-feed-{cursor}",
-        handle,
-        lambda: _get_author_feed(client, handle, cursor),
+    def _get_author_feed_request():
+        response = requests.get(
+            "https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed",
+            params={"actor": handle, "limit": 100, "cursor": cursor},
+            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response
+
+    output = await cache.get_or_return_cached_request(
+        f"bsky.get-author-feed-{cursor}", handle, _get_author_feed_request
     )
+    return (output.get("feed", []), output.get("cursor", ""))
 
 
-async def get_author_feed_text(
-    client: atproto.Client, handle: str, cursor: str = ""
-) -> tuple[list[str], str]:
-    """
-    Get the text of the author's feed.
-    """
-    return await cache.get_or_return_cached(
-        f"bsky.get-author-feed-text-{cursor}",
-        handle,
-        lambda: _get_author_feed_text(client, handle, cursor),
+async def get_author_feed_text(client: atproto.Client, handle: str, cursor: str = "") -> tuple[list[str], str]:
+    def _get_author_feed_text_request():
+        response = requests.get(
+            "https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed",
+            params={"actor": handle, "limit": 100, "filter": "posts_no_replies", "cursor": cursor},
+            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response
+
+    feed_data = await cache.get_or_return_cached_request(
+        f"bsky.get-author-feed-text-{cursor}", handle, _get_author_feed_text_request
     )
+    return ([post["post"]["record"]["text"] for post in feed_data.get("feed", [])], feed_data.get("cursor", ""))
 
 
-async def get_author_feed_texts(
-    client: atproto.Client, handle: str, pages: int = 1
-) -> list[str]:
+async def get_author_feed_texts(client: atproto.Client, handle: str, pages: int = 1) -> list[str]:
     """
     Get the text of the author's feed, going back a number of pages.
     """
@@ -306,272 +229,3 @@ def handle_scrubber(handle: str) -> str:
     # Use regex to filter allowed characters
     handle = re.sub(r"[^a-zA-Z0-9._-]", "", handle)
     return handle.strip().lower()
-
-
-def _filter_profiles(
-    profiles: list[atproto.models.AppBskyActorDefs.ProfileViewBasic],
-) -> list[atproto.models.AppBskyActorDefs.ProfileViewBasic]:
-    """
-    Filter out any profiles that are invalid, or blocked (in either direction).
-    """
-    return [
-        profile
-        for profile in profiles
-        if not (
-            profile.handle == "handle.invalid"
-            or (
-                profile.viewer
-                and (
-                    profile.viewer.blocking is True
-                    or profile.viewer.blocked_by is True
-                    or profile.viewer.blocking_by_list is True
-                )
-            )
-        )
-    ]
-
-
-def _format_profile(
-    profile: atproto.models.AppBskyActorDefs.ProfileView,
-) -> dict[str, typing.Any]:
-    return {
-        "did": profile.did,
-        "handle": profile.handle,
-        "avatar": profile.avatar,
-        "displayName": profile.display_name,
-        "createdAt": profile.created_at,
-        "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
-        "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
-        "viewerBlockingByList": (
-            profile.viewer.blocking_by_list if profile.viewer else None
-        ),
-        "description": profile.description,  # The only thing that's different from the basic profile
-    }
-
-
-def _format_profile_basic(
-    profile: atproto.models.AppBskyActorDefs.ProfileViewBasic,
-) -> dict[str, typing.Any]:
-    return {
-        "did": profile.did,
-        "handle": profile.handle,
-        "avatar": profile.avatar,
-        "displayName": profile.display_name,
-        "createdAt": profile.created_at,
-        "viewerBlocking": profile.viewer.blocking if profile.viewer else None,
-        "viewerBlockedBy": profile.viewer.blocked_by if profile.viewer else None,
-        "viewerBlockingByList": (
-            profile.viewer.blocking_by_list if profile.viewer else None
-        ),
-    }
-
-
-def _format_feed_view(
-    post: atproto.models.AppBskyFeedDefs.FeedViewPost,
-) -> dict[str, typing.Any]:
-    return {
-        "reasonBy": _format_profile_basic(post.reason.by) if post.reason else None,
-        "feedContext": post.feed_context,
-        #
-        **_format_post(
-            "post",
-            post.post,
-        ),
-        **_format_post(
-            "post",
-            (
-                post.reply.root
-                if post.reply
-                and post.reply.root
-                and not getattr(post.reply.root, "not_found", True)
-                else None
-            ),
-        ),
-        **_format_post(
-            "post",
-            (
-                post.reply.parent
-                if post.reply
-                and post.reply.parent
-                and not getattr(post.reply.parent, "not_found", True)
-                else None
-            ),
-        ),
-        "replyGrandparent": (
-            _format_profile_basic(post.reply.grandparent_author)
-            if post.reply and post.reply and post.reply.grandparent_author
-            else None
-        ),
-    }
-
-
-def _format_post(
-    prefix: str,
-    post: atproto.models.AppBskyFeedDefs.PostView | None,
-) -> dict[str, typing.Any]:
-    return (
-        {
-            f"{prefix}Author": _format_profile_basic(post.author),
-            f"{prefix}Text": post.record.text,
-            f"{prefix}Cid": post.cid,
-            f"{prefix}Uri": post.uri,
-            f"{prefix}LikeCount": post.like_count,
-            f"{prefix}RepostCount": post.repost_count,
-            f"{prefix}QuoteCount": post.quote_count,
-            f"{prefix}ReplyCount": post.reply_count,
-            f"{prefix}ViewerLike": post.viewer.like,
-            f"{prefix}ViewerRepost": post.viewer.repost,
-        }
-        if post
-        else {}
-    )
-
-
-#########################
-# CODE FORMATTING RULES #
-#########################
-
-# Every function past this point should:
-#   1. be doing something that takes a nontrivial amount of time (like making a network request)
-#   2. start a span, with its function inputs as attributes.
-#   3. should be cached inside of the functions calling them (except the cache itself, obviously)
-
-
-def _get_author_feed_text(
-    client: atproto.Client,
-    handle: str,
-    cursor: str = "",
-) -> tuple[list[str], str]:
-    with _telemetry.tracer.start_as_current_span("bsky.get-author-feed-text") as span:
-        span.set_attribute("handle", handle)
-        # https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
-
-        response: atproto.models.AppBskyFeedGetAuthorFeed.Response = (
-            client.get_author_feed(
-                handle,
-                limit=100,
-                filter="posts_no_replies",
-                cursor=cursor,
-            )
-        )
-        return (
-            [post.post.record.text for post in response.feed],
-            response.cursor,
-        )
-
-
-def _get_author_feed(
-    client: atproto.Client,
-    handle: str,
-    cursor: str = "",
-) -> tuple[list[dict[str, typing.Any]], str]:
-    with _telemetry.tracer.start_as_current_span("bsky.get-author-feed") as span:
-        span.set_attribute("handle", handle)
-        # https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
-
-        response: atproto.models.AppBskyFeedGetAuthorFeed.Response = (
-            client.get_author_feed(
-                handle,
-                limit=100,
-                cursor=cursor,
-            )
-        )
-        return (
-            [_format_feed_view(feed_view) for feed_view in response.feed],
-            response.cursor,
-        )
-
-
-def _get_profile(
-    client: atproto.Client,
-    handle: str,
-) -> ProfileDetailed:
-    with _telemetry.tracer.start_as_current_span("bsky.get-profile") as span:
-        span.set_attribute("handle", handle)
-
-        # https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
-        return ProfileDetailed(client.get_profile(handle))
-
-
-def _get_followers(
-    client: atproto.Client,
-    handle: str,
-    cursor: str = "",
-    followers: typing.Optional[list[dict[str, typing.Any]]] = None,
-    depth: int = 0,
-) -> list[dict[str, typing.Any]]:
-    with _telemetry.tracer.start_as_current_span("bsky.get-followers") as span:
-        span.set_attribute("handle", handle)
-        span.set_attribute("followers", len(followers) if followers else 0)
-
-        # https://docs.bsky.app/docs/api/app-bsky-graph-get-followers
-        followers = followers or []
-        response: atproto.models.AppBskyGraphGetFollowers.Response = (
-            client.get_followers(handle, limit=100, cursor=cursor)
-        )
-        followers = followers + [
-            _format_profile(profile) for profile in _filter_profiles(response.followers)
-        ]
-        depth += 1
-        if response.cursor and depth < MAX_FOLLOWS_PAGES:
-            return _get_followers(
-                client, handle, cursor=response.cursor, followers=followers, depth=depth
-            )
-        else:
-            return followers or []
-
-
-def _get_following(
-    client: atproto.Client,
-    handle: str,
-    cursor: str = "",
-    following: typing.Optional[list[dict[str, typing.Any]]] = None,
-    depth: int = 0,
-) -> list[dict[str, typing.Any]]:
-    with _telemetry.tracer.start_as_current_span("bsky.get-following") as span:
-        span.set_attribute("handle", handle)
-        span.set_attribute("following", len(following) if following else 0)
-
-        # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
-        following = following or []
-        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(
-            handle, limit=100, cursor=cursor
-        )
-        following = following + [
-            _format_profile(profile) for profile in _filter_profiles(response.follows)
-        ]
-        depth += 1
-        if response.cursor and depth < MAX_FOLLOWS_PAGES:
-            return _get_following(
-                client, handle, cursor=response.cursor, following=following, depth=depth
-            )
-        else:
-            return following or []
-
-
-def _get_following_handles(
-    client: atproto.Client,
-    handle: str,
-    cursor: str = "",
-    handles: typing.Optional[list[str]] = None,
-    depth: int = 0,
-) -> list[str]:
-    with _telemetry.tracer.start_as_current_span("bsky.get-following") as span:
-        span.set_attribute("handle", handle)
-        span.set_attribute("following", len(handles) if handles else 0)
-
-        # https://docs.bsky.app/docs/api/app-bsky-graph-get-follows
-        handles = handles or []
-        response: atproto.models.AppBskyGraphGetFollows.Response = client.get_follows(
-            handle, limit=100, cursor=cursor
-        )
-        handles = handles + [
-            profile.handle for profile in _filter_profiles(response.follows)
-        ]
-        depth += 1
-        if response.cursor and depth < MAX_FOLLOWS_PAGES:
-            return _get_following_handles(
-                client, handle, cursor=response.cursor, handles=handles, depth=depth
-            )
-        else:
-            return handles or []

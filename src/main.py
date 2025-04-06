@@ -81,35 +81,6 @@ async def bsky_mutuals(request: fastapi.Request, handle: str):
     return mutuals
 
 
-@app.get("/bsky/{me}/credibility/{them}")
-@app.get("/bsky/{me}/credibility/{them}/")
-@limiter.limit("10/second")
-async def bsky_credibilty(request: fastapi.Request, handle: str, them: str):
-    """
-    For some person I follow,
-    show who lends 'credibility' to them in the form of a follow
-    """
-    handle = bsky.handle_scrubber(handle)
-    lenders = await bsky.credibilty(bsky_client, handle, them)
-    return lenders
-
-
-@app.get("/bsky/{me}/credibility/{them}/percent")
-@app.get("/bsky/{me}/credibility/{them}/percent/")
-@limiter.limit("10/second")
-async def bsky_credibilty_percent(request: fastapi.Request, me: str, them: str):
-    """
-    For some person I follow,
-    show who lends 'credibility' to them in the form of a follow,
-    as of of a percent of their followers.
-    1 credibility would mean that all of their followers are people I follow.
-    """
-    me = bsky.handle_scrubber(me)
-    them = bsky.handle_scrubber(them)
-    percent = await bsky.credibilty_percent(bsky_client, me, them)
-    return percent
-
-
 @app.get("/bsky/{handle}/popularity")
 @app.get("/bsky/{handle}/popularity/")
 async def bluesky_popularity(request: fastapi.Request, handle: str):
@@ -185,9 +156,7 @@ async def bsky_author_feed(request: fastapi.Request, handle: str):
     Get my posts
     """
     handle = bsky.handle_scrubber(handle)
-    (feed, cursor) = await bsky.get_author_feed(
-        bsky_client, handle, request.query_params.get("cursor", None)
-    )
+    (feed, cursor) = await bsky.get_author_feed(bsky_client, handle, request.query_params.get("cursor", None))
     return {
         "feed": feed,
         "next": cursor,
@@ -202,9 +171,7 @@ async def bsky_author_feed_text(request: fastapi.Request, handle: str):
     Get my posts
     """
     handle = bsky.handle_scrubber(handle)
-    (feed, cursor) = await bsky.get_author_feed_text(
-        bsky_client, handle, request.query_params.get("cursor", None)
-    )
+    (feed, cursor) = await bsky.get_author_feed_text(bsky_client, handle, request.query_params.get("cursor", None))
     return {
         "feed": feed,
         "next": cursor,
