@@ -11,6 +11,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
     steps:
       - uses: actions/checkout@v4
       - uses: google-github-actions/auth@v2
