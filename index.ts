@@ -61,7 +61,7 @@ export = async () => {
 
   // Create a CNAME record pointing the zone to the static IP address
   new aws.route53.Record(name, {
-    zoneId: hostedZone.then((zone) => zone.id),
+    zoneId: hostedZone.then((zone: aws.route53.GetZoneResult) => zone.id),
     name: config.require("DNS_NAME"),
     type: "A",
     ttl: 60,

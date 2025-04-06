@@ -56,8 +56,7 @@ publish:
 	docker push $(image-url)
 
 ## login to the platforms necessary to deploy the application
-deploy-login:
-	gcloud auth login
+login:
 	gcloud auth application-default login
 	gcloud config set project coilysiren-deploy
 	pulumi login
@@ -80,6 +79,17 @@ deploy-secrets-cert:
 	env \
 		NAME=$(name-dashed) \
 		envsubst < deploy/secrets-cert.yaml | kubectl apply -f -
+
+## deploy the BSKY_USERNAME and BSKY_PASSWORD secrets
+deploy-secrets-bsky:
+	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
+	gcloud container clusters get-credentials $(cluster) \
+			--region us-west2-a
+	kubectl create secret generic "$(name-dashed)"-bsky \
+		--namespace="$(name-dashed)" \
+		--from-literal=BSKY_USERNAME="$(shell gcloud secrets versions access latest --secret=bsky-username)" \
+		--from-literal=BSKY_PASSWORD="$(shell gcloud secrets versions access latest --secret=bsky-password)" \
+		--dry-run=client -o yaml | kubectl apply -f -
 
 ## deploy the application to the cluster
 deploy:
