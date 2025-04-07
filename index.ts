@@ -63,15 +63,25 @@ export = async () => {
     displayName: `Allows deploying the ${name} service`,
   });
 
-  // Allow various actors to generate access tokens for the service account
-  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-itself`, {
+  // Allow various actors to generate access tokens for the service account: Github Actions
+  new gcp.serviceaccount.IAMMember(`${nameDashed}-token-creator-github`, {
     serviceAccountId: pulumi.interpolate`${account.id}`,
     role: "roles/iam.serviceAccountTokenCreator",
-    members: [
-      pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`, // Github Actions
-      pulumi.interpolate`serviceAccount:${account.email}`, // The service account itself
-      `user:${email}`, // Human(s)
-    ],
+    member: pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`,
+  });
+
+  // Allow various actors to generate access tokens for the service account: service account itself
+  new gcp.serviceaccount.IAMMember(`${nameDashed}-token-creator-itself`, {
+    serviceAccountId: pulumi.interpolate`${account.id}`,
+    role: "roles/iam.serviceAccountTokenCreator",
+    member: pulumi.interpolate`serviceAccount:${account.email}`, // The service account itself
+  });
+
+  // Allow various actors to generate access tokens for the service account: humans
+  new gcp.serviceaccount.IAMMember(`${nameDashed}-token-creator-humans`, {
+    serviceAccountId: pulumi.interpolate`${account.id}`,
+    role: "roles/iam.serviceAccountTokenCreator",
+    member: `user:${email}`,
   });
 
   // Allow the service account to push our docker images
