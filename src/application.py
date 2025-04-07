@@ -7,6 +7,7 @@ import fastapi
 import fastapi.middleware.cors as cors
 import fastapi.middleware.trustedhost as trustedhost
 import opentelemetry.trace as otel_trace
+import requests.exceptions
 import sentry_sdk
 import slowapi
 import slowapi.errors
@@ -74,46 +75,13 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
             try:
                 return await asyncio.wait_for(call_next(request), timeout=self.timeout)
 
-            # Atproto can return specific errors that we want to handle gracefully.
-            # These error types were enumerated by looking at the type annotations.
-            except atproto_client.exceptions.RequestErrorBase as exc:
-                self._capture_exception(span, exc)
-
-                response = exc.response
-                if response is None:
-                    message = "unknown atproto error"
-                    logger.error(message, exc=exc, status_code=500)
-                    return starlette.responses.JSONResponse(
-                        {"detail": message},
-                        status_code=500,
-                    )
-
-                elif type(response.content) is atproto_models.XrpcError:
-                    message = "generic xrpcerror error"
-                    logger.error(
-                        message,
-                        exc=exc,
-                        status_code=response.status_code,
-                    )
-                    return starlette.responses.JSONResponse(
-                        {
-                            "detail": message,
-                            "error": response.content.message,
-                        },
-                        status_code=response.status_code,
-                    )
-
-                else:
-                    message = "generic atproto error"
-                    logger.info(
-                        message,
-                        exc=exc,
-                        status_code=response.status_code,
-                    )
-                    return starlette.responses.JSONResponse(
-                        {"detail": message, "error": str(response.content)},
-                        status_code=response.status_code,
-                    )
+            except requests.exceptions.HTTPError as exc:
+                try:
+                    message = exc.response.json()
+                except requests.exceptions.JSONDecodeError:
+                    message = exc.response.text
+                logger.exception("HTTP error", exc=exc)
+                return starlette.responses.JSONResponse({"detail": message}, status_code=exc.response.status_code)
 
             # handle any kind of timeout errors, note that we enforce the timeouts
             except asyncio.TimeoutError as exc:

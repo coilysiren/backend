@@ -85,7 +85,6 @@ deploy-secrets-cert:
 		NAME=$(name-dashed) \
 		envsubst < deploy/secrets-cert.yaml | kubectl apply -f -
 
-## deploy the BSKY_USERNAME and BSKY_PASSWORD secrets
 deploy-secrets-bsky:
 	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
 	gcloud container clusters get-credentials $(cluster) \
@@ -96,8 +95,16 @@ deploy-secrets-bsky:
 		--from-literal=BSKY_PASSWORD="$(shell gcloud secrets versions access latest --secret=bsky-password)" \
 		--dry-run=client -o yaml | kubectl apply -f -
 
-## deploy the application to the cluster
-deploy:
+deploy-secrets-honeycomb:
+	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
+	gcloud container clusters get-credentials $(cluster) \
+			--region us-west2-a
+	kubectl create secret generic "$(name-dashed)"-honeycomb \
+		--namespace="$(name-dashed)" \
+		--from-literal=HONEYCOMB_API_KEY="$(shell gcloud secrets versions access latest --secret=honeycomb-api-key)" \
+		--dry-run=client -o yaml | kubectl apply -f -
+
+.deploy:
 	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
 	$(eval ip := $(shell pulumi stack output ip | jq -r .address))
 	$(eval project := $(shell gcloud config get-value project))
@@ -112,6 +119,9 @@ deploy:
 		IMAGE_URL=$(image-url) \
 		IP_ADDRESS=$(ip) \
 		envsubst < deploy/main.yaml | kubectl apply -f -
+
+## deploy the application to the cluster
+deploy: publish .deploy
 
 ## run project on your plain old machine
 #  see also: run-docker

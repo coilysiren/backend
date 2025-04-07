@@ -18,9 +18,7 @@ class Telemetry(object):
 
     initalized = False
     tracer: otel_trace.Tracer
-    resource: otel_resources.Resource = otel_resources.Resource.create(
-        {"service.name": "backend", "cloud.provider": "heroku"}
-    )
+    resource: otel_resources.Resource = otel_resources.Resource.create({"service.name": "backend"})
 
     def __new__(cls):
         if not cls.initalized:
