@@ -73,20 +73,12 @@ export = async () => {
   });
 
   // Allow Github Actions to impersonate service accounts
-  // This permission is too broad, but I can't get it to work otherwise.
   new gcp.projects.IAMBinding(`${nameDashed}-token-creator-github`, {
     project: gcp.config.project || "",
     role: "roles/iam.serviceAccountTokenCreator",
     members: [
       pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`,
     ],
-  });
-
-  // Allow service account to create tokens for itself
-  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-itself`, {
-    serviceAccountId: pulumi.interpolate`${account.id}`,
-    role: "roles/iam.serviceAccountUser",
-    members: [pulumi.interpolate`serviceAccount:${account.email}`],
   });
 
   // Allow service account to generate access tokens
