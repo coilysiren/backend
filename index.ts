@@ -57,10 +57,21 @@ export = async () => {
     repositoryId: nameDashed,
   });
 
-  // Create a service account for pushing our docker images
+  // Create a service account for deploying the service
   const account = new gcp.serviceaccount.Account(nameDashed, {
     accountId: nameDashed,
     displayName: `Allows deploying the ${name} service`,
+  });
+
+  // Allow various actors to generate access tokens for the service account
+  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-itself`, {
+    serviceAccountId: pulumi.interpolate`${account.id}`,
+    role: "roles/iam.serviceAccountTokenCreator",
+    members: [
+      pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`, // Github Actions
+      pulumi.interpolate`serviceAccount:${account.email}`, // The service account itself
+      `user:${email}`, // Human(s)
+    ],
   });
 
   // Allow the service account to push our docker images
@@ -70,29 +81,6 @@ export = async () => {
     repository: repo.name,
     role: "roles/artifactregistry.writer",
     members: [pulumi.interpolate`serviceAccount:${account.email}`],
-  });
-
-  // Allow Github Actions to impersonate service accounts
-  new gcp.projects.IAMBinding(`${nameDashed}-token-creator-github`, {
-    project: gcp.config.project || "",
-    role: "roles/iam.serviceAccountTokenCreator",
-    members: [
-      pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`,
-    ],
-  });
-
-  // Allow service account to generate access tokens
-  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-itself-2`, {
-    serviceAccountId: pulumi.interpolate`${account.id}`,
-    role: "roles/iam.serviceAccountTokenCreator",
-    members: [pulumi.interpolate`serviceAccount:${account.email}`],
-  });
-
-  // Allow humans to act as the service account
-  new gcp.serviceaccount.IAMBinding(`${nameDashed}-token-creator-humans`, {
-    serviceAccountId: pulumi.interpolate`${account.id}`,
-    role: "roles/iam.serviceAccountTokenCreator",
-    members: [`user:${email}`],
   });
 
   // Allow the service account to read the state bucket
