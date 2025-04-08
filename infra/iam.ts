@@ -4,6 +4,8 @@ import * as simpleGit from "simple-git";
 import { GoogleAuth, OAuth2Client } from "google-auth-library";
 
 export default async () => {
+  const config = new pulumi.Config();
+
   // Get repository name
   const git = simpleGit.default();
   const remote = (await git.getConfig("remote.origin.url")).value || "";
@@ -53,30 +55,43 @@ export default async () => {
 
   // Allow various actors to generate access tokens for the service account: Github Actions
   new gcp.serviceaccount.IAMMember(`${nameDashed}-token-creator-github`, {
-    serviceAccountId: pulumi.interpolate`${account.id}`,
-    role: "roles/iam.serviceAccountTokenCreator",
     member: pulumi.interpolate`principalSet://iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${nameDashed}/attribute.repository/${name}`,
+    role: "roles/iam.serviceAccountTokenCreator",
+    serviceAccountId: pulumi.interpolate`${account.id}`,
   });
 
   // Allow various actors to generate access tokens for the service account: service account itself
   new gcp.serviceaccount.IAMMember(`${nameDashed}-token-creator-itself`, {
-    serviceAccountId: pulumi.interpolate`${account.id}`,
-    role: "roles/iam.serviceAccountTokenCreator",
     member: pulumi.interpolate`serviceAccount:${account.email}`, // The service account itself
+    role: "roles/iam.serviceAccountTokenCreator",
+    serviceAccountId: pulumi.interpolate`${account.id}`,
   });
 
   // Allow various actors to generate access tokens for the service account: humans
   new gcp.serviceaccount.IAMMember(`${nameDashed}-token-creator-humans`, {
-    serviceAccountId: pulumi.interpolate`${account.id}`,
-    role: "roles/iam.serviceAccountTokenCreator",
     member: `user:${email}`,
+    role: "roles/iam.serviceAccountTokenCreator",
+    serviceAccountId: pulumi.interpolate`${account.id}`,
   });
 
   // Allow the service account to read the state bucket
-  new gcp.storage.BucketIAMBinding(`${nameDashed}-state-bucket-reader`, {
-    bucket: "coilysiren-deploy-pulumi-state",
+  new gcp.storage.BucketIAMMember(`${nameDashed}-state-bucket-reader`, {
+    member: pulumi.interpolate`serviceAccount:${account.email}`,
     role: "roles/storage.objectViewer",
-    members: [pulumi.interpolate`serviceAccount:${account.email}`],
+    bucket: "coilysiren-deploy-pulumi-state",
+  });
+
+  // Allow the service account to write to the logs
+  new gcp.projects.IAMMember(`${nameDashed}-logs-writer`, {
+    member: pulumi.interpolate`serviceAccount:${account.email}`,
+    role: "roles/logging.logWriter",
+    project: pulumi.interpolate`${account.project}`,
+  });
+
+  new gcp.projects.IAMMember(`${nameDashed}-default-account`, {
+    member: pulumi.interpolate`serviceAccount:${account.email}`,
+    role: "roles/container.defaultNodeServiceAccount",
+    project: pulumi.interpolate`${account.project}`,
   });
 
   return { account };

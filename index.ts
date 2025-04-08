@@ -1,11 +1,13 @@
 import dns from "./infra/dns";
-import repository from "./infra/repository";
+import repo from "./infra/repo";
 import iam from "./infra/iam";
+import redis from "./infra/redis";
 
 export = async () => {
   const { account } = await iam();
   const { ip } = await dns();
-  const { repo } = await repository(account);
+  const { repo: _repo } = await repo(account);
+  const { redis: _redis } = await redis(account);
 
-  return { repo, ip };
+  return { repo: _repo, ip, redis: _redis };
 };

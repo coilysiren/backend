@@ -15,13 +15,22 @@ export default async (account: gcp.serviceaccount.Account) => {
     repositoryId: nameDashed,
   });
 
-  // Allow the service account to push our docker images
-  new gcp.artifactregistry.RepositoryIamBinding(nameDashed, {
-    project: repo.project,
+  // Allow the service account to read the artifact registry
+  new gcp.artifactregistry.RepositoryIamMember(`${nameDashed}-reader`, {
+    member: pulumi.interpolate`serviceAccount:${account.email}`,
+    role: "roles/artifactregistry.reader",
+    project: account.project,
     location: repo.location,
     repository: repo.name,
+  });
+
+  // Allow the service account to push our docker images
+  new gcp.artifactregistry.RepositoryIamMember(`${nameDashed}-writer`, {
+    member: pulumi.interpolate`serviceAccount:${account.email}`,
     role: "roles/artifactregistry.writer",
-    members: [pulumi.interpolate`serviceAccount:${account.email}`],
+    project: account.project,
+    location: repo.location,
+    repository: repo.name,
   });
 
   return { repo };
