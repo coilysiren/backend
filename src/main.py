@@ -1,6 +1,8 @@
 import dotenv
 import fastapi
 import opentelemetry.instrumentation.fastapi as otel_fastapi
+import structlog
+import structlog.processors
 
 from . import application
 from . import bsky
@@ -9,6 +11,13 @@ from . import cache
 dotenv.load_dotenv()
 (app, limiter) = application.init()
 bsky_client = bsky.init()
+
+
+structlog.configure(
+    processors=[
+        structlog.processors.JSONRenderer(sort_keys=True),
+    ]
+)
 
 
 @app.get("/")

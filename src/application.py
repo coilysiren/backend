@@ -39,13 +39,34 @@ class OpenTelemetryMiddleware(middleware.BaseHTTPMiddleware):
             span.set_attribute("http.url", str(request.url))
             span.set_attribute("http.request.path", request.url.path)
 
+            query_params = {}
             for key, value in request.query_params.items():
                 span.set_attribute(f"http.request.query.{key}", value)
+                query_params[key] = value
 
+            path_params = {}
             for key, value in request.path_params.items():
                 span.set_attribute(f"http.request.path.{key}", value)
+                path_params[key] = value
 
+            logger.info(
+                "request starting",
+                method=request.method,
+                url=str(request.url),
+                path=request.url.path,
+                **query_params,
+                **path_params,
+            )
             response = await call_next(request)
+            logger.info(
+                "request finishing",
+                status_code=response.status_code,
+                method=request.method,
+                url=str(request.url),
+                path=request.url.path,
+                **query_params,
+                **path_params,
+            )
             span.set_attribute("http.status_code", response.status_code)
             return response
 

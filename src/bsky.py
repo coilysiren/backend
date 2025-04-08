@@ -2,6 +2,7 @@ import os
 import re
 import typing
 import requests
+import time
 
 import atproto  # type: ignore
 import structlog
@@ -20,6 +21,25 @@ MAX_SUGGESTION_PAGES = 10
 
 POPULARITY_PER_PAGE = 50
 MAX_POPULARITY_PAGES = 50
+
+
+# class Bsky(object):
+
+#     _client: atproto.Client
+#     _client_refresh_interval: int = 60 * 60 * 8  # 8 hours
+#     _client_last_refresh: int = 0
+
+#     @property
+#     def client(self) -> atproto.Client:
+#         if not self._client:
+#             self._client = init()
+
+#         if time.time() - self._client_last_refresh > self._client_refresh_interval:
+#             logger.info("refreshing bsky client")
+#             self._client = init()
+#             self._client_last_refresh = time.time()
+
+#         return self._client
 
 
 def init():
