@@ -114,6 +114,7 @@ deploy-secrets-honeycomb:
 			--region us-west2-a
 	env \
 		NAME=$(name-dashed) \
+		PROJECT_ID=$(project) \
 		DNS_NAME=$(dns-name) \
 		EMAIL=$(email) \
 		IMAGE_URL=$(image-url) \

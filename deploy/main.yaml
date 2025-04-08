@@ -20,6 +20,7 @@ spec:
       labels:
         app: ${NAME}
     spec:
+      serviceAccountName: ${NAME}
       containers:
         - name: ${NAME}
           image: ${IMAGE_URL}
@@ -48,6 +49,15 @@ spec:
           ports:
             - containerPort: 80
       restartPolicy: Always
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${NAME}
+  namespace: ${NAME}
+  annotations:
+    iam.gke.io/gcp-service-account: ${NAME}@${PROJECT_ID}.iam.gserviceaccount.com
 
 ---
 apiVersion: cert-manager.io/v1
