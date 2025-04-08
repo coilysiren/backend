@@ -40,6 +40,11 @@ spec:
                 secretKeyRef:
                   name: ${NAME}-bsky
                   key: BSKY_PASSWORD
+            - name: HONEYCOMB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ${NAME}-honeycomb
+                  key: HONEYCOMB_API_KEY
           ports:
             - containerPort: 80
       restartPolicy: Always
