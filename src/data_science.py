@@ -2,6 +2,7 @@ import dataclasses
 import json
 import os
 import subprocess
+import typing
 
 import nltk  # type: ignore
 import nltk.corpus  # type: ignore
@@ -37,20 +38,24 @@ class KeywordEmojiData(object):
 
 
 class DataScienceClient(object):
-
-    initalized = False
+    _instance: typing.Optional["DataScienceClient"] = None
+    _initialized: bool = False
     emojis = [EmojiData]
     ignore_list: set[str] = set()
     nlp: spacy.language.Language
 
     def __new__(cls):
-        if not cls.initalized:
-            cls._load_nltk(cls)
-            cls.nlp = cls._load_nlp(cls)
-            cls.emojis = cls._load_emojis(cls)
-            cls.ignore_list = cls._load_ignore_list(cls)
-            cls.initalized = True
-        return cls
+        if cls._instance is None:
+            cls._instance = super(DataScienceClient, cls).__new__(cls)
+        return cls._instance
+
+    def initialize(self):
+        if not self._initialized:
+            self._load_nltk()
+            self.nlp = self._load_nlp()
+            self.emojis = self._load_emojis()
+            self.ignore_list = self._load_ignore_list()
+            self._initialized = True
 
     def _load_nltk(self):
         nltk.download("stopwords")

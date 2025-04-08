@@ -24,7 +24,7 @@ MAX_POPULARITY_PAGES = 50
 
 
 class Bsky(object):
-    _instance = None
+    _instance: typing.Optional["Bsky"] = None
     _client: atproto.Client = None
     _client_refresh_interval: int = 60 * 60 * 8  # 8 hours
     _client_last_refresh: int = 0

@@ -15592,12 +15592,8 @@
     "description": "roller skate"
   },
   {
-    "emoji": "🚏",
-    "description": "bus stop"
-  },
-  {
     "emoji": "🛣️",
-    "description": "motorway"
+    "description": "road"
   },
   {
     "emoji": "🛣",
@@ -15638,10 +15634,6 @@
   {
     "emoji": "🚦",
     "description": "vertical traffic light"
-  },
-  {
-    "emoji": "🛑",
-    "description": "stop sign"
   },
   {
     "emoji": "🚧",
@@ -18254,14 +18246,6 @@
   {
     "emoji": "⏸",
     "description": "pause button"
-  },
-  {
-    "emoji": "⏹️",
-    "description": "stop button"
-  },
-  {
-    "emoji": "⏹",
-    "description": "stop button"
   },
   {
     "emoji": "⏺️",
