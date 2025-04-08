@@ -13,7 +13,7 @@ from .src import cache
 from .src import data_science as _data_science
 
 dotenv.load_dotenv()
-bsky_client = bsky.init()
+bsky_instance = bsky.Bsky()
 
 # Send our logs to stderr so jq can parse stdout.
 # This only needs to happen here, inside of the CLI entrypoint.
@@ -61,7 +61,10 @@ def bsky_cli(ctx: invoke.Context, path: str, kwargs: str = ""):
     def _get_request():
         response = requests.get(
             f"https://bsky.social/xrpc/{path}",
-            headers={"Accept": "application/json", "Authorization": f"Bearer {bsky_client._session.access_jwt}"},
+            headers={
+                "Accept": "application/json",
+                "Authorization": f"Bearer {bsky_instance.client._session.access_jwt}",
+            },
             timeout=30,
             params=_parse_kwargs(kwargs),
         )
@@ -83,7 +86,7 @@ def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1)
     """Get the author's feed texts."""
     output = asyncio.run(
         bsky.get_author_feed_texts(
-            bsky_client,
+            bsky_instance.client,
             handle,
             pages,
         )
@@ -96,7 +99,7 @@ def bsky_emoji_summary(ctx: invoke.Context, handle: str, num_keywords=25, num_fe
     data_science_client = _data_science.DataScienceClient()
 
     # Get the author's feed texts
-    text_lines = asyncio.run(bsky.get_author_feed_texts(bsky_client, handle, num_feed_pages))
+    text_lines = asyncio.run(bsky.get_author_feed_texts(bsky_instance.client, handle, num_feed_pages))
     text_joined = "\n".join(text_lines)
 
     # Get the keywords and emoji match scores
