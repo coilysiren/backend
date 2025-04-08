@@ -8,9 +8,8 @@ import invoke
 import requests  # type: ignore
 import structlog
 
-from .src import bsky
-from .src import cache
-from .src import data_science as _data_science
+from .src import bsky, cache
+from .src import worker
 
 dotenv.load_dotenv()
 bsky_instance = bsky.Bsky()
@@ -95,29 +94,10 @@ def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1)
 
 
 @invoke.task
-def bsky_emoji_summary(ctx: invoke.Context, handle: str, num_keywords=25, num_feed_pages=25):
-    data_science_client = _data_science.DataScienceClient()
-
-    # Get the author's feed texts
-    text_lines = asyncio.run(bsky.get_author_feed_texts(bsky_instance.client, handle, num_feed_pages))
-    text_joined = "\n".join(text_lines)
-
-    # Get the keywords and emoji match scores
-    keywords: list[_data_science.KeywordData] = _data_science.extract_keywords(
-        data_science_client, handle, text_joined, num_keywords
+def bsky_emoji_summary(ctx: invoke.Context, handle: str, num_keywords: int = 25, num_feed_pages: int = 25):
+    """Process emoji summary for a user's posts."""
+    task_id = f"emoji-summary-{handle}"
+    results = asyncio.run(
+        worker.process_emoji_summary(bsky_instance.client, task_id, handle, num_keywords, num_feed_pages)
     )
-    emoji_match_scores: list[_data_science.KeywordEmojiData] = _data_science.get_emoji_match_scores(
-        data_science_client, handle, keywords
-    )
-    emoji_descriptions = _data_science.join_description_and_emoji_score(text_lines, emoji_match_scores)
-
-    # Display the results
-    print()
-    print(f"{handle} talks about...")
-    print()
-
-    for description in emoji_descriptions:
-        print(">", description[0], description[1])
-        print()
-        print(description[2])
-        print()
+    print(json.dumps(results, indent=2))
