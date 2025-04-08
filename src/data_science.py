@@ -127,7 +127,7 @@ def extract_keywords(client: DataScienceClient, handle: str, text: str, num_keyw
     )
     keywords = yake_kw_extractor.extract_keywords(text.lower())
 
-    # Sometimes they stopwords are not removed.
+    # Sometimes the stopwords are not removed.
     # So we need to remove them manually.
     keywords = [keyword for keyword in keywords if keyword not in client.ignore_list]
 
