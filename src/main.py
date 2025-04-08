@@ -1,17 +1,20 @@
+import asyncio
+import datetime
+import os
+import urllib.parse
+import uuid
+
 import dotenv
 import fastapi
 import opentelemetry.instrumentation.fastapi as otel_fastapi
 import structlog
 import structlog.processors
 
-from . import application
-from . import bsky
-from . import cache
+from . import application, bsky, cache, worker
 
 dotenv.load_dotenv()
 (app, limiter) = application.init()
 bsky_instance = bsky.Bsky()
-
 
 structlog.configure(
     processors=[
@@ -187,6 +190,35 @@ async def bsky_author_feed_text(request: fastapi.Request, handle: str):
         "feed": feed,
         "next": cursor,
     }
+
+
+@app.get("/bsky/{handle}/emoji-summary")
+@app.get("/bsky/{handle}/emoji-summary/")
+@limiter.limit("10/second")
+async def bsky_emoji_summary_start(
+    request: fastapi.Request, handle: str, num_keywords: int = 25, num_feed_pages: int = 25
+):
+    """
+    Start generating an emoji summary for a user's posts.
+    Returns a task ID that can be used to check the status.
+    """
+    handle = bsky.handle_scrubber(handle)
+
+    # Store initial status in cache
+    async_task_data = cache.create_or_return_async_task_data(
+        "emoji-summary",
+        handle,
+    )
+
+    # If the task ID is not found, start the task in the background
+    if async_task_data.task_data is None:
+        asyncio.create_task(
+            worker.process_emoji_summary(
+                bsky_instance.client, async_task_data.task_id, handle, num_keywords, num_feed_pages
+            )
+        )
+
+    return async_task_data.to_dict()
 
 
 otel_fastapi.FastAPIInstrumentor.instrument_app(app)

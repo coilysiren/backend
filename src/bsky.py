@@ -1,10 +1,10 @@
 import os
 import re
-import typing
-import requests
 import time
+import typing
 
 import atproto  # type: ignore
+import requests
 import structlog
 
 from . import cache

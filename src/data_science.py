@@ -1,20 +1,17 @@
+import dataclasses
+import json
 import os
+import subprocess
+
 import nltk  # type: ignore
 import nltk.corpus  # type: ignore
+import numpy
 import spacy
-import yake  # type: ignore
-import nltk
-import nltk.corpus
-import spacy
-import yaml  # type: ignore
-import spacy
-import json
-import dataclasses
 import spacy.language
 import spacy.tokens.doc as spacy_doc
 import structlog
-import numpy
-
+import yake  # type: ignore
+import yaml  # type: ignore
 
 logger = structlog.get_logger()
 
@@ -59,8 +56,8 @@ class DataScienceClient(object):
         nltk.download("stopwords")
 
     def _load_nlp(self):
-        # TODO: only run once on a machine
-        # subprocess.run(["spacy", "download", "en_core_web_lg"])
+        # !!! TODO !!! only download if not already downloaded
+        subprocess.run(["spacy", "download", "en_core_web_lg"])
         return spacy.load("en_core_web_lg")
 
     def _load_emojis(self):
@@ -83,11 +80,7 @@ class DataScienceClient(object):
         with open("nlp_ignore.yml", "r", encoding="utf-8") as _file:
             ignore_list = yaml.load(_file, yaml.Loader)
 
-        return set(
-            nltk.corpus.stopwords.words("english")
-            + list(self.nlp.Defaults.stop_words)
-            + ignore_list
-        )
+        return set(nltk.corpus.stopwords.words("english") + list(self.nlp.Defaults.stop_words) + ignore_list)
 
 
 def _remove_substring_entries(keywords: list[KeywordData]) -> list[KeywordData]:
@@ -113,9 +106,7 @@ def _remove_substring_entries(keywords: list[KeywordData]) -> list[KeywordData]:
     return filtered_keywords
 
 
-def extract_keywords(
-    client: DataScienceClient, handle: str, text: str, num_keywords: int = 50
-) -> list[KeywordData]:
+def extract_keywords(client: DataScienceClient, handle: str, text: str, num_keywords: int = 50) -> list[KeywordData]:
     """
     Given a `client` that contains a simple ignore list.
     And a `text` input to extract keywords from.
@@ -135,11 +126,7 @@ def extract_keywords(
     # Sometimes it's (keyword, score), sometimes it's (score, keyword).
     # This depends on the operating system, as far as I can tell.
     keywords = [
-        (
-            KeywordData(pair[0], pair[1])
-            if type(pair[0]) != str
-            else KeywordData(pair[1], pair[0])
-        )
+        KeywordData(pair[1], pair[0]) if isinstance(pair[0], str) else KeywordData(pair[0], pair[1])
         for pair in keywords
     ]
 
@@ -147,10 +134,7 @@ def extract_keywords(
     logger.info(
         "extract-keywords",
         handle=handle,
-        **{
-            keyword.keyword.replace(" ", "-"): float(keyword.score)
-            for keyword in keywords
-        },
+        **{keyword.keyword.replace(" ", "-"): float(keyword.score) for keyword in keywords},
     )
     return keywords
 
@@ -178,11 +162,9 @@ def get_emoji_match_scores(
 
             # Check if emoji is in keyword or vice versa
             if any(
-                word == client.emojis[emoji_index].description.lower()
-                for word in keyword_data.keyword.lower().split()
+                word == client.emojis[emoji_index].description.lower() for word in keyword_data.keyword.lower().split()
             ) or any(
-                word == keyword_data.keyword.lower()
-                for word in client.emojis[emoji_index].description.lower().split()
+                word == keyword_data.keyword.lower() for word in client.emojis[emoji_index].description.lower().split()
             ):
                 # If so, then set to the max similarity score
                 emoji_match_score = 1.0
@@ -222,9 +204,7 @@ def get_emoji_match_scores(
     return emoji_match_scores
 
 
-def join_description_and_emoji_score(
-    text_lines: list[str], emoji_match_scores: list[KeywordEmojiData]
-):
+def join_description_and_emoji_score(text_lines: list[str], emoji_match_scores: list[KeywordEmojiData]):
     emoji_descriptions = []
 
     for emoji_score in emoji_match_scores:

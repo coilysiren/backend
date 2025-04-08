@@ -1,4 +1,6 @@
 import asyncio
+import dataclasses
+import enum
 import json
 import logging
 import os
@@ -25,6 +27,28 @@ redis = _redis.Redis(
     password=redis_url.password,
     socket_timeout=3,
 )
+
+
+class TaskDataStatus(enum.Enum):
+    in_progress = "in_progress"
+    failed = "failed"
+    completed = "completed"
+
+
+@dataclasses.dataclass
+class AsyncTaskData:
+    task_id: str
+    task_status: TaskDataStatus
+    task_data: typing.Optional[typing.Any]
+
+    def to_dict(self) -> dict:
+        return {"task_id": self.task_id, "task_status": self.task_status.value, "task_data": self.task_data}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "AsyncTaskData":
+        return cls(
+            task_id=data["task_id"], task_status=TaskDataStatus(data["task_status"]), task_data=data["task_data"]
+        )
 
 
 def delete_keys(suffix: str) -> None:
@@ -144,3 +168,41 @@ async def get_or_return_cached(prefix: str, suffix: str, func: typing.Callable) 
 
             logger.info("cache", adjective="miss", prefix=prefix, suffix=suffix, key=key)
             return output
+
+
+def create_or_return_async_task_data(prefix: str, suffix: str) -> AsyncTaskData:
+    key = f"{prefix}-{suffix}"
+    expiry = 86400  # 1 day
+
+    try:
+        task_data = redis.get(key)
+
+        if task_data is None:
+            task_data = AsyncTaskData(task_id=key, task_status=TaskDataStatus.in_progress, task_data=None)
+            redis.set(key, json.dumps(task_data.to_dict()), ex=expiry)
+            return task_data
+
+        else:
+            task_data = json.loads(task_data)
+            return AsyncTaskData.from_dict(task_data)
+
+    except Exception as exc:
+        logger.exception(
+            "cache",
+            adjective="error",
+            prefix=prefix,
+            suffix=suffix,
+        )
+        raise exc
+
+
+def get_async_task_data(prefix: str, suffix: str) -> AsyncTaskData:
+    key = f"{prefix}-{suffix}"
+    task_data = redis.get(key)
+    return AsyncTaskData.from_dict(json.loads(task_data))
+
+
+def set_async_task_data(prefix: str, suffix: str, task_data: AsyncTaskData) -> None:
+    key = f"{prefix}-{suffix}"
+    expiry = 86400  # 1 day
+    redis.set(key, json.dumps(task_data.to_dict()), ex=expiry)
