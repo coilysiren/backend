@@ -127,10 +127,6 @@ def extract_keywords(client: DataScienceClient, handle: str, text: str, num_keyw
     )
     keywords = yake_kw_extractor.extract_keywords(text.lower())
 
-    # Sometimes the stopwords are not removed.
-    # So we need to remove them manually.
-    keywords = [keyword for keyword in keywords if keyword not in client.ignore_list]
-
     # This block is necessary because the order of the tuples is not consistent.
     # Sometimes it's (keyword, score), sometimes it's (score, keyword).
     # This depends on the operating system, as far as I can tell.
@@ -138,6 +134,10 @@ def extract_keywords(client: DataScienceClient, handle: str, text: str, num_keyw
         KeywordData(pair[1], pair[0]) if isinstance(pair[0], str) else KeywordData(pair[0], pair[1])
         for pair in keywords
     ]
+
+    # Sometimes the stopwords are not removed.
+    # So we need to remove them manually.
+    keywords = [keyword for keyword in keywords if keyword.keyword not in client.ignore_list]
 
     keywords = _remove_substring_entries(keywords)
     logger.info(
