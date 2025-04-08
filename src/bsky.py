@@ -23,23 +23,31 @@ POPULARITY_PER_PAGE = 50
 MAX_POPULARITY_PAGES = 50
 
 
-# class Bsky(object):
+class Bsky(object):
+    _instance = None
+    _client: atproto.Client = None
+    _client_refresh_interval: int = 60 * 60 * 8  # 8 hours
+    _client_last_refresh: int = 0
 
-#     _client: atproto.Client
-#     _client_refresh_interval: int = 60 * 60 * 8  # 8 hours
-#     _client_last_refresh: int = 0
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Bsky, cls).__new__(cls)
+        return cls._instance
 
-#     @property
-#     def client(self) -> atproto.Client:
-#         if not self._client:
-#             self._client = init()
+    @property
+    def client(self) -> atproto.Client:
+        # Generate a new client if one doesn't exist
+        if not self._client:
+            self._client = init()
+            self._client_last_refresh = int(time.time())
 
-#         if time.time() - self._client_last_refresh > self._client_refresh_interval:
-#             logger.info("refreshing bsky client")
-#             self._client = init()
-#             self._client_last_refresh = time.time()
+        # Refresh the client if it's been more than 8 hours
+        if time.time() - self._client_last_refresh > self._client_refresh_interval:
+            logger.info("refreshing bsky client")
+            self._client = init()
+            self._client_last_refresh = int(time.time())
 
-#         return self._client
+        return self._client
 
 
 def init():

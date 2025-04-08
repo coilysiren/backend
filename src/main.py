@@ -10,7 +10,7 @@ from . import cache
 
 dotenv.load_dotenv()
 (app, limiter) = application.init()
-bsky_client = bsky.init()
+bsky_instance = bsky.Bsky()
 
 
 structlog.configure(
@@ -47,7 +47,7 @@ async def cache_clear(request: fastapi.Request, suffix: str):
 @limiter.limit("10/second")
 async def bsky_followers(request: fastapi.Request, handle: str):
     handle = bsky.handle_scrubber(handle)
-    output = await bsky.get_followers(bsky_client, handle)
+    output = await bsky.get_followers(bsky_instance.client, handle)
     return output
 
 
@@ -56,7 +56,7 @@ async def bsky_followers(request: fastapi.Request, handle: str):
 @limiter.limit("10/second")
 async def bsky_following(request: fastapi.Request, handle: str):
     handle = bsky.handle_scrubber(handle)
-    output = await bsky.get_following(bsky_client, handle)
+    output = await bsky.get_following(bsky_instance.client, handle)
     return output
 
 
@@ -65,7 +65,7 @@ async def bsky_following(request: fastapi.Request, handle: str):
 @limiter.limit("10/second")
 async def bsky_following_handles(request: fastapi.Request, handle: str):
     handle = bsky.handle_scrubber(handle)
-    output = await bsky.get_following_handles(bsky_client, handle)
+    output = await bsky.get_following_handles(bsky_instance.client, handle)
     return output
 
 
@@ -74,7 +74,7 @@ async def bsky_following_handles(request: fastapi.Request, handle: str):
 @limiter.limit("10/second")
 async def bsky_profile(request: fastapi.Request, handle: str):
     handle = bsky.handle_scrubber(handle)
-    output = await bsky.get_profile(bsky_client, handle)
+    output = await bsky.get_profile(bsky_instance.client, handle)
     return output
 
 
@@ -84,8 +84,8 @@ async def bsky_profile(request: fastapi.Request, handle: str):
 async def bsky_mutuals(request: fastapi.Request, handle: str):
     """People I follow who follow me back"""
     handle = bsky.handle_scrubber(handle)
-    followers = await bsky.get_followers(bsky_client, handle)
-    following = await bsky.get_following(bsky_client, handle)
+    followers = await bsky.get_followers(bsky_instance.client, handle)
+    following = await bsky.get_following(bsky_instance.client, handle)
     mutuals = {k: v for k, v in followers.items() if k in following}
     return mutuals
 
@@ -99,7 +99,7 @@ async def bluesky_popularity(request: fastapi.Request, handle: str):
     and aggregate that list to see how popular each person is.
     """
     handle = bsky.handle_scrubber(handle)
-    (popularity, next_index) = await bsky.popularity(bsky_client, handle, 0)
+    (popularity, next_index) = await bsky.popularity(bsky_instance.client, handle, 0)
     return {
         "popularity": popularity,
         "next": next_index,
@@ -116,7 +116,7 @@ async def bluesky_popularity_page(request: fastapi.Request, handle: str, index: 
     This returns the {index} page of the popularity list.
     """
     handle = bsky.handle_scrubber(handle)
-    (popularity, next_index) = await bsky.popularity(bsky_client, handle, index)
+    (popularity, next_index) = await bsky.popularity(bsky_instance.client, handle, index)
     return {
         "popularity": popularity,
         "next": next_index,
@@ -133,7 +133,7 @@ async def bsky_suggestions(request: fastapi.Request, handle: str):
     returning the first page of a list.
     """
     handle = bsky.handle_scrubber(handle)
-    (suggestions, next_index) = await bsky.suggestions(bsky_client, handle, 0)
+    (suggestions, next_index) = await bsky.suggestions(bsky_instance.client, handle, 0)
     return {
         "suggestions": suggestions,
         "next": next_index,
@@ -150,7 +150,7 @@ async def bsky_suggestions_page(request: fastapi.Request, handle: str, index: in
     returning the {index} page of a list.
     """
     handle = bsky.handle_scrubber(handle)
-    (suggestions, next_index) = await bsky.suggestions(bsky_client, handle, index)
+    (suggestions, next_index) = await bsky.suggestions(bsky_instance.client, handle, index)
     return {
         "suggestions": suggestions,
         "next": next_index,
@@ -165,7 +165,7 @@ async def bsky_author_feed(request: fastapi.Request, handle: str):
     Get my posts
     """
     handle = bsky.handle_scrubber(handle)
-    (feed, cursor) = await bsky.get_author_feed(bsky_client, handle, request.query_params.get("cursor", ""))
+    (feed, cursor) = await bsky.get_author_feed(bsky_instance.client, handle, request.query_params.get("cursor", ""))
     return {
         "feed": feed,
         "next": cursor,
@@ -180,7 +180,9 @@ async def bsky_author_feed_text(request: fastapi.Request, handle: str):
     Get my posts
     """
     handle = bsky.handle_scrubber(handle)
-    (feed, cursor) = await bsky.get_author_feed_text(bsky_client, handle, request.query_params.get("cursor", ""))
+    (feed, cursor) = await bsky.get_author_feed_text(
+        bsky_instance.client, handle, request.query_params.get("cursor", "")
+    )
     return {
         "feed": feed,
         "next": cursor,
