@@ -3,8 +3,8 @@ DEFAULT_GOAL := help
 
 # Put static variables up here.
 # These would be nice inside of a config file or something.
-dns-zone ?= coilysiren.me
 dns-name ?= api.coilysiren.me
+dns-dashed ?= $(subst .,-,$(dns-name))
 email ?= coilysiren@gmail.com
 
 # Everything at the top level runs every time you do anything.
@@ -60,66 +60,36 @@ build-docker: .build .build-docker
 ## publish the docker image to the registry
 publish: build-docker .publish
 
-## login to the platforms necessary to deploy the application
-login:
-	gcloud auth application-default login
-	gcloud config set project coilysiren-deploy
-	pulumi login
-	pulumi stack select build
-
-## deploy the infrastructure required to operate and host this repository, should only be run by humans
-deploy-infra:
-	pulumi config set aws:region us-west-2
-	pulumi config set gcp:project coilysiren-deploy
-	pulumi config set gcp:region us-west2
-	pulumi config set dns-zone $(dns-zone)
-	pulumi config set dns-name $(dns-name)
-	pulumi up --yes
+## deploy the namespace for the application
+deploy-namespace:
+	kubectl create namespace $(name-dashed)
 
 ## deploy the cert secrets utilized by the application
 deploy-secrets-cert:
-	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
-	gcloud container clusters get-credentials $(cluster) \
-			--region us-west2-a
 	env \
 		NAME=$(name-dashed) \
-		envsubst < deploy/secrets-cert.yaml | kubectl apply -f -
+		envsubst < deploy/secrets-cert.yml | kubectl apply -f -
 
 deploy-secrets-bsky:
-	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
-	gcloud container clusters get-credentials $(cluster) \
-			--region us-west2-a
 	kubectl create secret generic "$(name-dashed)"-bsky \
 		--namespace="$(name-dashed)" \
 		--from-literal=BSKY_USERNAME="$(shell gcloud secrets versions access latest --secret=bsky-username)" \
 		--from-literal=BSKY_PASSWORD="$(shell gcloud secrets versions access latest --secret=bsky-password)" \
-		--dry-run=client -o yaml | kubectl apply -f -
+		--dry-run=client -o yml | kubectl apply -f -
 
 deploy-secrets-honeycomb:
-	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
-	gcloud container clusters get-credentials $(cluster) \
-			--region us-west2-a
-	kubectl create secret generic "$(name-dashed)"-honeycomb \
+\	kubectl create secret generic "$(name-dashed)"-honeycomb \
 		--namespace="$(name-dashed)" \
 		--from-literal=HONEYCOMB_API_KEY="$(shell gcloud secrets versions access latest --secret=honeycomb-api-key)" \
-		--dry-run=client -o yaml | kubectl apply -f -
+		--dry-run=client -o yml | kubectl apply -f -
 
 .deploy:
-	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
-	$(eval ip := $(shell pulumi stack output ip | jq -r .address))
-	$(eval project := $(shell gcloud config get-value project))
-	$(eval image-url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
-	$(eval cluster := $(shell gcloud container clusters list --filter='name:coilysiren-deploy*' --format='value(name)'))
-	gcloud container clusters get-credentials $(cluster) \
-			--region us-west2-a
 	env \
 		NAME=$(name-dashed) \
-		PROJECT_ID=$(project) \
 		DNS_NAME=$(dns-name) \
+		DNS_DASHED=$(dns-dashed) \
 		EMAIL=$(email) \
-		IMAGE_URL=$(image-url) \
-		IP_ADDRESS=$(ip) \
-		envsubst < deploy/main.yaml | kubectl apply -f -
+		envsubst < deploy/main.yml | kubectl apply -f -
 
 ## deploy the application to the cluster
 deploy: publish .deploy
