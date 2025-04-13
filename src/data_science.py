@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import typing
+import asyncio
 
 import nltk  # type: ignore
 import nltk.corpus  # type: ignore
@@ -49,37 +50,33 @@ class DataScienceClient(object):
             cls._instance = super(DataScienceClient, cls).__new__(cls)
         return cls._instance
 
-    def initialize(self):
+    async def initialize(self):
         if not self._initialized:
-            self._load_nltk()
-            self.nlp = self._load_nlp()
-            self.emojis = self._load_emojis()
-            self.ignore_list = self._load_ignore_list()
+            await asyncio.to_thread(self._load_nltk)
+            self.nlp = await asyncio.to_thread(self._load_nlp)
+            self.emojis = await asyncio.to_thread(self._load_emojis)
+            self.ignore_list = await asyncio.to_thread(self._load_ignore_list)
             self._initialized = True
 
     def _load_nltk(self):
         nltk.download("stopwords")
 
     def _load_nlp(self):
-        # !!! TODO !!! only download if not already downloaded
-        subprocess.run(["spacy", "download", "en_core_web_lg"])
+        subprocess.run(["spacy", "download", "en_core_web_lg"], check=True)
         return spacy.load("en_core_web_lg")
 
     def _load_emojis(self):
         with open(os.path.join("emojis.json"), "r", encoding="utf-8") as _file:
             emojis = json.loads(_file.read())
 
-        _emojis: list[EmojiData] = []
-        for emoji_index in range(len(emojis)):
-            _emojis.append(
-                EmojiData(
-                    emojis[emoji_index]["emoji"],
-                    emojis[emoji_index]["description"],
-                    self.nlp(emojis[emoji_index]["description"]),
-                )
+        return [
+            EmojiData(
+                emojis[emoji_index]["emoji"],
+                emojis[emoji_index]["description"],
+                self.nlp(emojis[emoji_index]["description"]),
             )
-
-        return _emojis
+            for emoji_index in range(len(emojis))
+        ]
 
     def _load_ignore_list(self):
         with open("nlp_ignore.yml", "r", encoding="utf-8") as _file:

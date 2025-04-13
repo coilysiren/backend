@@ -17,8 +17,7 @@ async def process_emoji_summary(
         # Initialize the data science client,
         # run the true initialization in the background because it's slow
         data_science_client = data_science.DataScienceClient()
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, data_science_client.initialize)
+        await data_science_client.initialize()
 
         # Get the author's feed texts
         text_lines = await bsky.get_author_feed_texts(bsky_client, handle, num_feed_pages)
