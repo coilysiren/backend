@@ -55,27 +55,14 @@ spec:
       protocol: TCP
 
 ---
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: ${NAME}-tls
-  namespace: ${NAME}
-spec:
-  secretName: ${NAME}-tls
-  issuerRef:
-    name: letsencrypt-staging
-  commonName: ${DNS_NAME}
-  dnsNames:
-    - ${DNS_NAME}
-
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ${NAME}-ingress
   namespace: ${NAME}
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-staging
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    acme.cert-manager.io/http01-edit-in-place: "true"
     kubernetes.io/tls-acme: "true"
     spec.ingressClassName: traefik
 spec:
