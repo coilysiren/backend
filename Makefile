@@ -47,13 +47,6 @@ build-native: .build
 build-docker: .build .build-docker
 
 .publish:
-	$(eval repo := $(shell pulumi stack output repo | jq -r .name))
-	$(eval project := $(shell gcloud config get-value project))
-	$(eval image-url := us-west2-docker.pkg.dev/$(project)/$(repo)/$(repo):$(hash))
-	gcloud auth print-access-token \
-		--impersonate-service-account $(name-dashed)@coilysiren-deploy.iam.gserviceaccount.com | docker login \
-		-u oauth2accesstoken \
-		--password-stdin https://us-west2-docker.pkg.dev
 	docker tag $(name):$(hash) $(image-url)
 	docker push $(image-url)
 
@@ -70,18 +63,18 @@ deploy-secrets-cert:
 		NAME=$(name-dashed) \
 		envsubst < deploy/secrets-cert.yml | kubectl apply -f -
 
-deploy-secrets-bsky:
-	kubectl create secret generic "$(name-dashed)"-bsky \
-		--namespace="$(name-dashed)" \
-		--from-literal=BSKY_USERNAME="$(shell gcloud secrets versions access latest --secret=bsky-username)" \
-		--from-literal=BSKY_PASSWORD="$(shell gcloud secrets versions access latest --secret=bsky-password)" \
-		--dry-run=client -o yml | kubectl apply -f -
+# deploy-secrets-bsky:
+# 	kubectl create secret generic "$(name-dashed)"-bsky \
+# 		--namespace="$(name-dashed)" \
+# 		--from-literal=BSKY_USERNAME="$(shell gcloud secrets versions access latest --secret=bsky-username)" \
+# 		--from-literal=BSKY_PASSWORD="$(shell gcloud secrets versions access latest --secret=bsky-password)" \
+# 		--dry-run=client -o yml | kubectl apply -f -
 
-deploy-secrets-honeycomb:
-\	kubectl create secret generic "$(name-dashed)"-honeycomb \
-		--namespace="$(name-dashed)" \
-		--from-literal=HONEYCOMB_API_KEY="$(shell gcloud secrets versions access latest --secret=honeycomb-api-key)" \
-		--dry-run=client -o yml | kubectl apply -f -
+# deploy-secrets-honeycomb:
+# \	kubectl create secret generic "$(name-dashed)"-honeycomb \
+# 		--namespace="$(name-dashed)" \
+# 		--from-literal=HONEYCOMB_API_KEY="$(shell gcloud secrets versions access latest --secret=honeycomb-api-key)" \
+# 		--dry-run=client -o yml | kubectl apply -f -
 
 .deploy:
 	env \
