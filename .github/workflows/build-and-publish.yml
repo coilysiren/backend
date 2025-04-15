@@ -10,4 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - run: name=coilysiren-backend make .build-docker
+      - run: docker tag coilysiren-backend:latest ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
+      - run: docker push ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
