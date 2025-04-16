@@ -1,17 +1,17 @@
 DEFAULT_GOAL := help
-.PHONY: deploy
 
-# Put static variables up here.
-# These would be nice inside of a config file or something.
-dns-name ?= api.coilysiren.me
-dns-dashed ?= $(subst .,-,$(dns-name))
-email ?= coilysiren@gmail.com
+# Any command that has the same name as a file or folder needs to be marked as phony
+.PHONY: deploy
 
 # Everything at the top level runs every time you do anything.
 # So only put fast commands up here.
-hash ?= $(shell git rev-parse --short HEAD)
-name ?= $(shell git config --get remote.origin.url | sed -E 's/^.*:(.*)\..*$$/\1/')
+
+dns-name ?= $(shell cat config.yml | yq e '.dns-name')
+dns-dashed ?= $(subst .,-,$(dns-name))
+email ?= $(shell cat config.yml | yq e '.email')
+name ?= $(shell cat config.yml | yq e '.name')
 name-dashed ?= $(subst /,-,$(name))
+hash ?= $(shell git rev-parse HEAD)
 
 help:
 	@awk '/^## / \
