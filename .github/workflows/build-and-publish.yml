@@ -1,4 +1,4 @@
-name: build-and-publish
+name: build-publish-deploy
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-and-publish:
+  build-publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,6 +21,16 @@ jobs:
       - run: name=coilysiren-backend make .build-docker
       - run: docker tag coilysiren-backend:latest ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
       - run: docker push ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
+      - uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - run: ssh ${{ secrets.TS_SSH }} ls
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: tailscale/github-action@v3
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
