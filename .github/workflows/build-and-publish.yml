@@ -31,4 +31,5 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
       - run: sudo tailscale up --accept-dns --accept-routes --advertise-tags=tag:ci --hostname=github-actions
+      - run: tailscale ssh ${{ secrets.TS_SSH }} ls
       - run: ssh ${{ secrets.TS_SSH }} ls
