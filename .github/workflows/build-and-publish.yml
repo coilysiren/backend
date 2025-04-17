@@ -23,6 +23,7 @@ jobs:
       - run: docker push ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
   deploy:
     runs-on: ubuntu-latest
+    needs: build-publish
     steps:
       - uses: actions/checkout@v4
       - uses: tailscale/github-action@v3
@@ -59,4 +60,4 @@ jobs:
               client-certificate-data: ${{ secrets.K8S_CLIENT_CERT_DATA }}
               client-key-data: ${{ secrets.K8S_CLIENT_KEY_DATA }}
           EOF
-      - run: kubectl get pods --all-namespaces
+      - run: make .deploy

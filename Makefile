@@ -7,11 +7,14 @@ DEFAULT_GOAL := help
 # So only put fast commands up here.
 
 dns-name ?= $(shell cat config.yml | yq e '.dns-name')
-dns-dashed ?= $(subst .,-,$(dns-name))
 email ?= $(shell cat config.yml | yq e '.email')
 name ?= $(shell cat config.yml | yq e '.name')
 name-dashed ?= $(subst /,-,$(name))
-hash ?= $(shell git rev-parse HEAD)
+git-hash ?= $(shell git rev-parse HEAD)
+image-url ?= ghcr.io/$(name)/$(name-dashed):$(git-hash)
+
+echo:
+	echo $(image-url)
 
 help:
 	@awk '/^## / \
@@ -80,8 +83,7 @@ deploy-secrets-cert:
 	env \
 		NAME=$(name-dashed) \
 		DNS_NAME=$(dns-name) \
-		DNS_DASHED=$(dns-dashed) \
-		EMAIL=$(email) \
+		IMAGE=$(image-url) \
 		envsubst < deploy/main.yml | kubectl apply -f -
 
 ## deploy the application to the cluster
