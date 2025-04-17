@@ -31,5 +31,29 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
       - run: sudo tailscale up --accept-dns --accept-routes --advertise-tags=tag:ci --hostname=github-actions
-      - run: tailscale ssh ${{ secrets.TS_SSH }} ls
-      - run: ssh ${{ secrets.TS_SSH }} ls
+      - uses: kubernetes-actions/setup-kubectl@v1
+      - name: kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          cat <<EOF > ~/.kube/config
+          apiVersion: v1
+          kind: Config
+          clusters:
+          - name: default
+            cluster:
+              server: ${{ secrets.K8S_SERVER }}
+              certificate-authority-data: ${{ secrets.K8S_CA_DATA }}
+          contexts:
+          - name: default
+            context:
+              cluster: default
+              user: default
+          current-context: default
+          preferences: {}
+          users:
+          - name: default
+            user:
+              client-certificate-data: ${{ secrets.K8S_CLIENT_CERT_DATA }}
+              client-key-data: ${{ secrets.K8S_CLIENT_KEY_DATA }}
+          EOF
+      - run: kubectl get pods --all-namespaces
