@@ -21,12 +21,6 @@ jobs:
       - run: name=coilysiren-backend make .build-docker
       - run: docker tag coilysiren-backend:latest ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
       - run: docker push ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
-      - uses: tailscale/github-action@v3
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-      - run: ssh ${{ secrets.TS_SSH }} ls
   deploy:
     runs-on: ubuntu-latest
     steps:
@@ -36,4 +30,4 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
-      - run: ssh ${{ secrets.TS_SSH }} ls
+      - run: tailscale ssh ${{ secrets.TS_SSH }} ls
