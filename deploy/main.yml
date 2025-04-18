@@ -14,9 +14,9 @@ spec:
       labels:
         app: ${NAME}-app
     spec:
+      imagePullSecrets:
+        - name: docker-registry
       containers:
-        imagePullSecrets:
-          - name: docker-registry
         - name: ${NAME}
           image: ${IMAGE}
           resources:
