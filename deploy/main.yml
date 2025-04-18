@@ -15,10 +15,10 @@ spec:
         app: ${NAME}-app
     spec:
       containers:
+        imagePullSecrets:
+          - name: docker-registry
         - name: ${NAME}
           image: ${IMAGE}
-          imagePullSecrets:
-            - name: docker-registry
           resources:
             limits:
               cpu: 1000m
