@@ -17,6 +17,8 @@ spec:
       containers:
         - name: ${NAME}
           image: ${IMAGE}
+          imagePullSecrets:
+            - name: docker-registry
           resources:
             limits:
               cpu: 1000m
