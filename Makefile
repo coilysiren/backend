@@ -50,6 +50,7 @@ build-native: .build
 build-docker: .build .build-docker
 
 ## retrieve the bunny video from the server
+# via https://en.wikipedia.org/wiki/Big_Buck_Bunny
 retrieve-bunny:
 	scp kai@kai-server:/home/kai/bunny.webm .
 

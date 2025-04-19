@@ -10,7 +10,7 @@ import opentelemetry.instrumentation.fastapi as otel_fastapi
 import structlog
 import structlog.processors
 
-from . import application, bsky, cache, worker
+from . import application, bsky, cache, worker, streaming
 
 dotenv.load_dotenv()
 (app, limiter) = application.init()
@@ -43,6 +43,18 @@ async def cache_clear(request: fastapi.Request, suffix: str):
     """
     cache.delete_keys(suffix)
     return {"status": "ok"}
+
+
+@app.get("/streaming")
+@app.get("/streaming/")
+async def streaming_test():
+    return fastapi.responses.StreamingResponse(streaming.testing(), media_type="text/plain")
+
+
+# @app.get("/video")
+# @app.get("/video/")
+# async def video():
+#     return fastapi.responses.FileResponse("bunny.webm")
 
 
 @app.get("/bsky/{handle}/followers")
