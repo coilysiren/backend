@@ -49,6 +49,10 @@ build-native: .build
 #  see also: build-native
 build-docker: .build .build-docker
 
+## retrieve the bunny video from the server
+retrieve-bunny:
+	scp kai@kai-server:/home/kai/bunny.webm .
+
 .publish:
 	docker tag $(name):$(git-hash) $(image-url)
 	docker push $(image-url)
