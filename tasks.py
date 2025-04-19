@@ -8,8 +8,8 @@ import invoke
 import requests  # type: ignore
 import structlog
 
-from .src import bsky, cache
-from .src import worker
+from src import bsky, cache
+from src import worker
 
 dotenv.load_dotenv()
 bsky_instance = bsky.Bsky()
@@ -101,3 +101,18 @@ def bsky_emoji_summary(ctx: invoke.Context, handle: str, num_keywords: int = 25,
         worker.process_emoji_summary(bsky_instance.client, task_id, handle, num_keywords, num_feed_pages)
     )
     print(json.dumps(results, indent=2))
+
+
+@invoke.task
+def stream_video(path: str, chunk_size: int = 25 * 1024):
+    with open(path, "rb") as f:
+        size = f.__sizeof__()
+        read_size = 0
+
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+            read_size += chunk_size
+            print(f"{read_size / size * 100}%")

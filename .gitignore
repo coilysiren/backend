@@ -1,4 +1,5 @@
-bunny.webm
+*.mp4
+*.webm
 .build
 Pulumi.*.yaml
 

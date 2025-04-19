@@ -9,8 +9,8 @@ brew install pyenv
 brew install curl
 brew install jq
 brew install redis
-brew install gcloud
-brew install awscli
+brew install ffmpeg
+brew install mpv
 brew install --cask docker # probably this, didn't test
 
 pip install poetry
