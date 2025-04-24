@@ -9,7 +9,8 @@ import requests  # type: ignore
 import structlog
 
 from src import bsky, cache
-from src import worker
+
+# from src import worker
 
 dotenv.load_dotenv()
 bsky_instance = bsky.Bsky()
@@ -104,15 +105,27 @@ def bsky_emoji_summary(ctx: invoke.Context, handle: str, num_keywords: int = 25,
 
 
 @invoke.task
-def stream_video(path: str, chunk_size: int = 25 * 1024):
+def stream_video(ctx: invoke.Context, path: str, chunk_size: int = 1):
+    chunk_size = chunk_size * 1024  # Convert KB
+    print(f"Streaming video from {path} with chunk size {chunk_size}")
+
     with open(path, "rb") as f:
-        size = f.__sizeof__()
+        print(f"Reading file {path}")
+        # Get actual file size
+        f.seek(0, 2)  # Seek to end
+        size = f.tell()  # Get position (file size)
+        f.seek(0)  # Seek back to start
         read_size = 0
 
         while True:
+            progress = (read_size / size * 100) if size > 0 else 0
+            print(f"Progress: {progress:.2f}%")
             chunk = f.read(chunk_size)
             if not chunk:
                 break
-            yield chunk
-            read_size += chunk_size
-            print(f"{read_size / size * 100}%")
+            # Write chunk to stdout
+            sys.stdout.buffer.write(chunk)
+            sys.stdout.flush()
+            read_size += len(chunk)
+
+    print("\nDone")
