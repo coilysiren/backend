@@ -74,9 +74,7 @@ deploy-secrets-cert:
 ## deploy the docker registry secret utilized by the application
 deploy-secrets-docker-repo:
 	$(eval github-token := $(shell aws ssm get-parameter --name "/github/pat" --with-decryption --query "Parameter.Value" --output text))
-	# test the token
 	echo $(github-token) | docker login ghcr.io -u $(name) --password-stdin
-	# create the secret
 	kubectl create secret docker-registry docker-registry \
 		--namespace="$(name-dashed)" \
 		--docker-server=ghcr.io/$(name) \
@@ -99,6 +97,8 @@ deploy-secrets-docker-repo:
 # 		--dry-run=client -o yml | kubectl apply -f -
 
 .deploy:
+	$(eval github-token := $(shell aws ssm get-parameter --name "/github/pat" --with-decryption --query "Parameter.Value" --output text))
+	echo $(github-token) | docker login ghcr.io -u $(name) --password-stdin
 	env \
 		NAME=$(name-dashed) \
 		DNS_NAME=$(dns-name) \
