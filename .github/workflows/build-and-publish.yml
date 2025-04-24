@@ -18,14 +18,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: tailscale/github-action@v3
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-      - run: sudo tailscale up --accept-dns --accept-routes --advertise-tags=tag:ci --hostname=github-actions
       - run: name=coilysiren-backend make .build-docker
-      - run: name=coilysiren-backend make retrieve-bunny
       - run: docker tag coilysiren-backend:latest ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
       - run: docker push ghcr.io/${{ github.repository }}/coilysiren-backend:${{ github.sha }}
   deploy:
