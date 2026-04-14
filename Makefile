@@ -95,8 +95,6 @@ deploy-secrets-docker-repo:
 # 		--dry-run=client -o yml | kubectl apply -f -
 
 .deploy:
-	$(eval github-token := $(shell aws ssm get-parameter --name "/github/pat" --with-decryption --query "Parameter.Value" --output text))
-	echo $(github-token) | docker login ghcr.io -u $(name) --password-stdin
 	env \
 		NAME=$(name-dashed) \
 		DNS_NAME=$(dns-name) \
