@@ -29,3 +29,19 @@ add a script-app client_id/secret to lift rate limits and access my own user dat
   thread context so I have a record of who shared it and why.
 - **Reddit × GitHub**: scan programming subs for mentions of any of my repo names and
   open a GitHub issue tagged `mentioned-on-reddit` with the link.
+
+## Personalized for Kai
+
+- **Post-survival tracker** — auto-snapshot every Reddit post you make to S3 the moment
+  you post, then poll 1h / 6h / 24h later to detect deletion. Keeps a private record of
+  what got removed and by whom (mod log if available). Could feed a coilysiren.me
+  writeup on cross-platform moderation patterns.
+- **Pro-AI sub aggregator** — one-page feed of the top posts from r/accelerate,
+  r/singularity, r/transhumanism, r/aiwars (filtered pro side). A counter-balanced
+  morning read.
+- **Eco game subreddit watcher** — surface new strategy posts / mod releases from
+  r/EcoGlobalSurvival, since the Eco cycle is starting at the end of the week and you'd
+  rather not open Reddit manually. Especially relevant for Eco Sirens server prep.
+- **"What people are saying" employer scan** — daily scan of subs where my employer or
+  competitors come up. Useful for pitch material and general awareness without burning
+  attention on the platforms themselves.

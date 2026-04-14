@@ -31,3 +31,20 @@ Credentials: bot token in `../discord-bot/`. Env var: `DISCORD_BOT_TOKEN`.
   Cowork task and posts the result back when it finishes. Personal Claude over Discord.
 - **Discord × YouTube**: post new uploads from a watchlist of channels into a
   `#video-club` channel for async watchalongs.
+
+## Personalized for Kai
+
+- **Personal CRM pings via Discord DM** — the Obsidian People/ directory has ~100
+  files. A daily DM to yourself: "you haven't pinged {name} in {N} months — last topic:
+  {x}." Pulled from People/ frontmatter. Lowers the cost of staying in touch.
+- **Eco Sirens server console** — slash commands in the existing `discord-bot` to
+  start/stop/snapshot the Eco server, list players, broadcast announcements. Eliminates
+  the SSH step before the cycle starts end of this week.
+- **AI-psychosis self-monitor channel** — a private channel where the bot posts a daily
+  self-check ("any sycophancy patterns? any anthropomorphizing escalation?") with a
+  thumbs-up/down vote. A guardrail for heavy LLM use.
+- **Community-group RSVP helper** — tiny channel that tracks open offers (who offered
+  to help with what, who you offered to help) and surfaces the loops weekly. A
+  follow-through layer for casual community commitments.
+- **`!compress` command** — give it your remaining tasks for the day, it returns a
+  reordered, time-boxed plan. Day-compression as a one-liner.

@@ -30,3 +30,18 @@ token cached at `.youtube-token.json`.
   liked video. Shareable taste-of-the-day.
 - **YouTube × GitHub**: cross-link videos and code repos by topic, generating a
   "see-also" section on each repo's README.
+
+## Personalized for Kai
+
+- **"Do I actually need to watch this" filter** — given a video URL, fetch the transcript
+  (yt-dlp --write-auto-sub) and have Claude/Cowork summarize. Slots into the day-
+  compression effort.
+- **"Finish before cancel" tracker** — endpoint that knows which shows you're partway
+  through on streaming services you intend to drop, so the cancellation actually
+  happens once you're done. Tied to subscription-cull goals.
+- **AI/transhumanism channel allowlist** — curated subscription firehose limited to
+  pro-AI, accelerationist, and transhumanist channels. A counter-feed to the timelines
+  that lean the other way.
+- **Wind-down video shelf** — a small collection of low-stimulus videos for the same
+  slot as Dyson Sphere / Stardew / Loop Hero. Endpoint returns a random one for
+  high-overload mornings.

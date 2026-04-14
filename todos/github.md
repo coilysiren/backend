@@ -30,3 +30,19 @@ Likely env var: `GITHUB_TOKEN`.
   auto-comment a link to the video in that repo's README.
 - **GitHub × Anthropic (Claude Code)**: nightly Claude Code job that opens a draft PR with
   a "stale TODO sweep" — finds TODOs older than 6 months and proposes deletions.
+
+## Personalized for Kai
+
+- **Gauntlet visibility pipeline** — Gauntlet has 20 agents running but no shipped
+  writeup. An endpoint that turns the latest Gauntlet run results into a draft markdown
+  post (commit log + agent outputs + a one-paragraph framing) staged for coilysiren.me.
+  This is the "force-multiplier IC" version of "I'll write that up later."
+- **AI SRE business-case generator** — pull commits + PRs + linked issues from a
+  designated `ai-sre` repo and produce a weekly "what AI SRE shipped + what it cost in
+  tokens" digest. Turn the pitch into an artifact.
+- **Cross-repo "force multiplier" dashboard** — for the personal repo set, a single page
+  that surfaces: what changed this week, what's blocked, what's stale. Designed around
+  your "compounding technical impact" frame, not GitHub's.
+- **"Kai-shaped repo template"** — given a repo name, scaffold a new repo with your
+  standard Python+Poetry+pyproject layout, OTel/structlog wiring like this backend, and
+  a CLAUDE.md based on your USER.md. One command instead of an afternoon.

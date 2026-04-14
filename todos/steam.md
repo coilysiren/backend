@@ -30,3 +30,22 @@ Likely env var: `STEAM_API_KEY`, plus my SteamID64.
   beginners" video from a trusted-channel allowlist.
 - **Steam × Reddit**: pull the top thread from r/{game-subreddit} for the game I most
   recently played, daily.
+
+## Personalized for Kai
+
+- **Wind-down game picker** — TASKS.md already names the wind-down shelf: Dyson Sphere
+  Program, Stardew, ISLANDERS, Loop Hero. Endpoint returns one based on time of day +
+  hours-played-this-week. Drop the link into a Discord DM for one-click launch from your
+  phone when you decide to stop working.
+- **Purchase-vs-play meta-stat** — purchases-per-month vs. hours-played-on-recent-
+  purchases, surfaced as a single number on the website /now page. Let the data settle
+  the "do I buy too many games" question.
+- **Eco server companion endpoint** — SteamCMD wrapper that reports Eco server status,
+  player count, and uptime for Eco Sirens. The cycle starts end of this week — make the
+  server's status visible without SSHing.
+- **"Claude plays Eco" experiment scaffold** — backend exposes `/eco/agent/{action}`
+  endpoints (post message, build, trade, vote) that a Claude Code agent in `eco-mods/`
+  calls, with audit logs. A real testbed for letting an LLM hold long-running game
+  state.
+- **Prosperous Universe revival nudge** — sunk-cost tracker that shows what you spent vs.
+  last-login-date. Either pulls you back in or gives you closure to fully drop it.

@@ -34,3 +34,30 @@ API key shows up, several of these become easier.
   a single page so I don't have to open Reddit at all.
 - **Anthropic × YouTube**: given a video URL, fetch the transcript and produce a
   bullet-point summary on demand. Useful for "do I actually need to watch this?"
+
+## Personalized for Kai
+
+- **Journal todo-rollup** — scheduled task that scans
+  `coilyco-vault/Obsidian Vault/Journal/*.md` frontmatter `actions:` arrays from the
+  last 7 days, dedupes against TASKS.md, and posts a morning rollup. Closes the loop
+  between journaling and actually doing the things.
+- **AI psychosis watchdog** — scheduled task that reads recent Claude Code transcripts
+  and flags sycophancy patterns + anthropomorphizing escalations. Outputs a weekly
+  red/yellow/green report. Self-applied guardrail for heavy LLM use.
+- **Personal CRM weekly pass** — weekly Cowork task that reads `People/` files, ranks
+  by staleness × closeness, and drafts 3 "reach out to {name} about {topic}" cards.
+  Lowers the activation cost of maintaining real connections.
+- **Gauntlet writeup ghostwriter** — Cowork task that reads the gauntlet repo's latest
+  agent run logs and drafts a coilysiren.me post (problem, approach, results, next).
+  Unblocks the "next step when ready: write-up on coilysiren.me" item that's been
+  sitting in TASKS.md.
+- **Subscription audit on a cron** — monthly task that reads the most recent journal
+  mention of subscriptions plus a bank-export CSV (if dropped in), and produces a
+  "still paying for, still using, mismatch" report. Replaces the ad-hoc subscription-
+  cull pass with a recurring one.
+- **Daily "compress my day" briefing** — early-morning task that reads the previous
+  day's journal + open TASKS.md + calendar, and produces a 3-block "what matters today"
+  plan. Turns a vague intention to compress days into a ritual.
+- **AI SRE token-cost calculator** — given a description of an ops workflow, estimate
+  what an AI-SRE replacement would cost in tokens at scale and what it would replace.
+  Generates a concrete pitch artifact instead of hand-waving.
