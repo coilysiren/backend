@@ -20,9 +20,12 @@ spec:
         - name: ${NAME}
           image: ${IMAGE}
           resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
             limits:
-              cpu: 1000m
-              memory: 256Mi
+              cpu: "1"
+              memory: "512Mi"
           env:
             - name: PORT
               value: "80"
@@ -70,9 +73,7 @@ metadata:
   namespace: ${NAME}
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
-    acme.cert-manager.io/http01-edit-in-place: "true"
     kubernetes.io/tls-acme: "true"
-    spec.ingressClassName: traefik
 spec:
   ingressClassName: traefik
   tls:
