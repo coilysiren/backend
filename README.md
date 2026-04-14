@@ -13,11 +13,9 @@ brew install ffmpeg
 brew install mpv
 brew install --cask docker # probably this, didn't test
 
-pip install poetry
-poetry config virtualenvs.in-project true
-poetry sync
-poetry self add poetry-plugin-export
-poetry export -f requirements.txt --output requirements.txt --without-hashes
+brew install uv
+uv sync
+uv export --no-hashes --no-dev --no-emit-project --format requirements-txt -o requirements.txt
 
 # Optional:
 # pip install -r requirements.txt
@@ -45,7 +43,7 @@ REDISCLOUD_URL=redis://default:@127.0.0.1:6379 # Would be nice if heroku just pr
 Native
 
 ```bash
-poetry sync
+uv sync
 ```
 
 Container
@@ -69,7 +67,7 @@ docker build `
 In one terminal, run either of these
 
 ```bash
-poetry run uvicorn src.main:app --reload --port 4000 --host 0.0.0.0
+uv run uvicorn src.main:app --reload --port 4000 --host 0.0.0.0
 docker run --name coilysiren/backend --rm coilysiren/backend
 ```
 
@@ -82,5 +80,5 @@ curl "http://localhost:4000/bsky/coilysiren.me/profile" | jq
 ### Data Science
 
 ```bash
-poetry run jupyter notebook
+uv run jupyter notebook
 ```

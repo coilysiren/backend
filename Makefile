@@ -25,16 +25,14 @@ help:
 
 # rebuild requirements.txt whenever pyproject.toml changes
 .build: pyproject.toml
-	poetry lock
-	poetry self add poetry-plugin-export
-	poetry export -f requirements.txt --output requirements.txt --without-hashes
+	uv lock
+	uv export --no-hashes --no-dev --no-emit-project --format requirements-txt -o requirements.txt
 	touch .build
 
 ## build project on your plain old machine
 #  see also: build-docker
 build-native: .build
-	poetry config virtualenvs.in-project true
-	poetry sync
+	uv sync
 
 .build-docker:
 	docker build \
@@ -111,7 +109,7 @@ deploy: publish .deploy
 ## run project on your plain old machine
 #  see also: run-docker
 run-native:
-	poetry run uvicorn src.main:app --reload --port 4000 --host 0.0.0.0
+	uv run uvicorn src.main:app --reload --port 4000 --host 0.0.0.0
 
 ## run project inside of a docker container
 #  see also: run-native
