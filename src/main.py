@@ -233,4 +233,41 @@ async def bsky_emoji_summary_start(
     return async_task_data.to_dict()
 
 
+# TODO: integrations with external services I already have credentials for in sibling repos.
+# Each of these should grow into a `src/<service>.py` module + routes here, mirroring the
+# pattern used by `bsky.py`. Credentials should come from env vars loaded via dotenv.
+#
+# TODO(github): GitHub API integration. Used in ../website/fetch-now-data.js for commits,
+#   PRs, and starred repos via the `gh` CLI. Add /github/{user}/... endpoints (recent
+#   commits, PRs, stars) using a GITHUB_TOKEN env var.
+#
+# TODO(youtube): YouTube Data API via Google OAuth. See ../website/scripts/youtube-auth.js
+#   and ../website/fetch-now-data.js. Port the OAuth token flow and expose
+#   /youtube/{channel}/... endpoints (recent uploads, watch history if available).
+#
+# TODO(reddit): Reddit public API (no auth). See ../website/fetch-now-data.js. Add
+#   /reddit/{user}/... endpoints (recent posts/comments).
+#
+# TODO(steam): Steam Web API. See ../website/fetch-now-data.js (.steam-credentials.json).
+#   Add STEAM_API_KEY env var and /steam/{steamid}/... endpoints (recently played, owned
+#   games, achievements).
+#
+# TODO(discord): Discord bot integration. See ../discord-bot/ (DISCORD_BOT_TOKEN). Decide
+#   whether this backend should host a bot worker, or just expose webhook endpoints the
+#   discord-bot process can call.
+#
+# TODO(anthropic): Anthropic API. Used in ../gauntlet (GAUNTLET_INSPECTOR_KEY). Add an
+#   ANTHROPIC_API_KEY env var and an LLM helper module — useful for summarizing bsky
+#   feeds, emoji summaries, etc. Enable prompt caching.
+#
+# TODO(openai): OpenAI API. Used in ../gauntlet (GAUNTLET_ATTACKER_KEY). Add OPENAI_API_KEY
+#   for embeddings / fallback completions.
+#
+# TODO(aws): AWS via boto3. Used across ../infrastructure (eco.py, k8s.py, llama.py) for
+#   SSM Parameter Store and S3. Consider pulling production secrets from SSM instead of
+#   .env, and using S3 for cache/artifact storage (e.g. emoji-summary results, video).
+#
+# TODO(netlify): Netlify hosts ../website. Add a deploy-hook trigger endpoint so this
+#   backend can kick a website rebuild when upstream data (bsky stats, etc.) changes.
+
 otel_fastapi.FastAPIInstrumentor.instrument_app(app)
