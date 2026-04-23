@@ -1,8 +1,4 @@
 import asyncio
-import datetime
-import os
-import urllib.parse
-import uuid
 
 import dotenv
 import fastapi
@@ -10,7 +6,7 @@ import opentelemetry.instrumentation.fastapi as otel_fastapi
 import structlog
 import structlog.processors
 
-from . import application, bsky, cache, worker, streaming
+from . import application, bsky, cache, streaming, worker
 
 dotenv.load_dotenv()
 (app, limiter) = application.init()
@@ -180,7 +176,9 @@ async def bsky_author_feed(request: fastapi.Request, handle: str):
     Get my posts
     """
     handle = bsky.handle_scrubber(handle)
-    (feed, cursor) = await bsky.get_author_feed(bsky_instance.client, handle, request.query_params.get("cursor", ""))
+    (feed, cursor) = await bsky.get_author_feed(
+        bsky_instance.client, handle, request.query_params.get("cursor", "")
+    )
     return {
         "feed": feed,
         "next": cursor,
@@ -224,7 +222,7 @@ async def bsky_emoji_summary_start(
 
     # If the task ID is not found, start the task in the background
     if async_task_data.task_data is None:
-        asyncio.create_task(
+        asyncio.create_task(  # noqa: RUF006
             worker.process_emoji_summary(
                 bsky_instance.client, async_task_data.task_id, handle, num_keywords, num_feed_pages
             )

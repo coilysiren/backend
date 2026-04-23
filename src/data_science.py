@@ -1,9 +1,9 @@
+import asyncio
 import dataclasses
 import json
 import os
 import subprocess
 import typing
-import asyncio
 
 import nltk  # type: ignore
 import nltk.corpus  # type: ignore
@@ -19,35 +19,35 @@ logger = structlog.get_logger()
 
 
 @dataclasses.dataclass
-class EmojiData(object):
+class EmojiData:
     emoji: str
     description: str
     nlp: spacy_doc.Doc
 
 
 @dataclasses.dataclass
-class KeywordData(object):
+class KeywordData:
     score: numpy.float64
     keyword: str
 
 
 @dataclasses.dataclass
-class KeywordEmojiData(object):
+class KeywordEmojiData:
     keyword: str
     score: float
     emoji: str
 
 
-class DataScienceClient(object):
+class DataScienceClient:
     _instance: typing.Optional["DataScienceClient"] = None
     _initialized: bool = False
-    emojis = [EmojiData]
-    ignore_list: set[str] = set()
+    emojis: list[EmojiData] = []  # noqa: RUF012
+    ignore_list: set[str] = set()  # noqa: RUF012
     nlp: spacy.language.Language
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(DataScienceClient, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
     async def initialize(self):
@@ -66,7 +66,7 @@ class DataScienceClient(object):
         return spacy.load("en_core_web_lg")
 
     def _load_emojis(self):
-        with open(os.path.join("emojis.json"), "r", encoding="utf-8") as _file:
+        with open(os.path.join("emojis.json"), encoding="utf-8") as _file:
             emojis = json.loads(_file.read())
 
         return [
@@ -79,10 +79,14 @@ class DataScienceClient(object):
         ]
 
     def _load_ignore_list(self):
-        with open("nlp_ignore.yml", "r", encoding="utf-8") as _file:
+        with open("nlp_ignore.yml", encoding="utf-8") as _file:
             ignore_list = yaml.load(_file, yaml.Loader)
 
-        return set(nltk.corpus.stopwords.words("english") + list(self.nlp.Defaults.stop_words) + ignore_list)
+        return set(
+            nltk.corpus.stopwords.words("english")
+            + list(self.nlp.Defaults.stop_words)
+            + ignore_list
+        )
 
 
 def _remove_substring_entries(keywords: list[KeywordData]) -> list[KeywordData]:
@@ -108,7 +112,9 @@ def _remove_substring_entries(keywords: list[KeywordData]) -> list[KeywordData]:
     return filtered_keywords
 
 
-def extract_keywords(client: DataScienceClient, handle: str, text: str, num_keywords: int = 50) -> list[KeywordData]:
+def extract_keywords(
+    client: DataScienceClient, handle: str, text: str, num_keywords: int = 50
+) -> list[KeywordData]:
     """
     Given a `client` that contains a simple ignore list.
     And a `text` input to extract keywords from.
@@ -165,12 +171,13 @@ def get_emoji_match_scores(
 
         # Check each keyword against each emoji
         for emoji_index in range(len(client.emojis)):
-
             # Check if emoji is in keyword or vice versa
             if any(
-                word == client.emojis[emoji_index].description.lower() for word in keyword_data.keyword.lower().split()
+                word == client.emojis[emoji_index].description.lower()
+                for word in keyword_data.keyword.lower().split()
             ) or any(
-                word == keyword_data.keyword.lower() for word in client.emojis[emoji_index].description.lower().split()
+                word == keyword_data.keyword.lower()
+                for word in client.emojis[emoji_index].description.lower().split()
             ):
                 # If so, then set to the max similarity score
                 emoji_match_score = 1.0
@@ -210,7 +217,9 @@ def get_emoji_match_scores(
     return emoji_match_scores
 
 
-def join_description_and_emoji_score(text_lines: list[str], emoji_match_scores: list[KeywordEmojiData]):
+def join_description_and_emoji_score(
+    text_lines: list[str], emoji_match_scores: list[KeywordEmojiData]
+):
     emoji_descriptions = []
 
     for emoji_score in emoji_match_scores:

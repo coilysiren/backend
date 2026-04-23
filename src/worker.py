@@ -1,9 +1,6 @@
-import asyncio
 import atproto  # type: ignore
 
-from . import bsky
-from . import cache
-from . import data_science
+from . import bsky, cache, data_science
 
 
 async def process_emoji_summary(
@@ -24,9 +21,15 @@ async def process_emoji_summary(
         text_joined = "\n".join(text_lines)
 
         # Get the keywords and emoji match scores
-        keywords = data_science.extract_keywords(data_science_client, handle, text_joined, num_keywords)
-        emoji_match_scores = data_science.get_emoji_match_scores(data_science_client, handle, keywords)
-        emoji_descriptions = data_science.join_description_and_emoji_score(text_lines, emoji_match_scores)
+        keywords = data_science.extract_keywords(
+            data_science_client, handle, text_joined, num_keywords
+        )
+        emoji_match_scores = data_science.get_emoji_match_scores(
+            data_science_client, handle, keywords
+        )
+        emoji_descriptions = data_science.join_description_and_emoji_score(
+            text_lines, emoji_match_scores
+        )
 
         # Store results in cache
         cache.set_async_task_data(

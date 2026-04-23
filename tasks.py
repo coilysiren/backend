@@ -8,9 +8,7 @@ import invoke
 import requests  # type: ignore
 import structlog
 
-from src import bsky, cache
-
-# from src import worker
+from src import bsky, cache, worker
 
 dotenv.load_dotenv()
 bsky_instance = bsky.Bsky()
@@ -33,7 +31,7 @@ def _parse_kwargs(input_str: str) -> dict[str, typing.Any]:
 
     i = 0
     while i < len(tokens):
-        key = tokens[i].strip("--")
+        key = tokens[i].lstrip("-")
         value = tokens[i + 1] if i + 1 < len(tokens) else None
 
         if key in parsed_data:
@@ -95,11 +93,15 @@ def bsky_get_author_feed_texts(ctx: invoke.Context, handle: str, pages: int = 1)
 
 
 @invoke.task
-def bsky_emoji_summary(ctx: invoke.Context, handle: str, num_keywords: int = 25, num_feed_pages: int = 25):
+def bsky_emoji_summary(
+    ctx: invoke.Context, handle: str, num_keywords: int = 25, num_feed_pages: int = 25
+):
     """Process emoji summary for a user's posts."""
     task_id = f"emoji-summary-{handle}"
     results = asyncio.run(
-        worker.process_emoji_summary(bsky_instance.client, task_id, handle, num_keywords, num_feed_pages)
+        worker.process_emoji_summary(
+            bsky_instance.client, task_id, handle, num_keywords, num_feed_pages
+        )
     )
     print(json.dumps(results, indent=2))
 

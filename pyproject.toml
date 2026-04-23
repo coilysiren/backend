@@ -3,7 +3,7 @@ name = "backend"
 version = "0"
 description = ""
 readme = "README.md"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.13,<3.14"
 dependencies = [
   "fastapi>=0.135.3,<0.136.0",
   "uvicorn[standard]>=0.44.0,<0.45.0",
@@ -28,14 +28,28 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "black>=26.3.1,<27.0.0",
+  "ruff>=0.15.10,<0.16.0",
   "mypy>=1.20.1,<2.0.0",
-  "isort>=8.0.1,<9.0.0",
   "ptipython>=1.0.1,<2.0.0",
   "notebook>=7.5.5,<8.0.0",
   "types-requests>=2.33.0.20260408,<3.0.0",
   "pytest>=9.0.3,<10.0.0",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["notebook.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tasks.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
 
 [build-system]
 requires = ["hatchling"]

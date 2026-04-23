@@ -1,8 +1,6 @@
 import asyncio
 import os
 
-import atproto_client.exceptions  # type: ignore
-import atproto_client.models.common as atproto_models  # type: ignore
 import fastapi
 import fastapi.middleware.cors as cors
 import fastapi.middleware.trustedhost as trustedhost
@@ -102,10 +100,12 @@ class ErrorHandlingMiddleware(middleware.BaseHTTPMiddleware):
                 except requests.exceptions.JSONDecodeError:
                     message = exc.response.text
                 logger.exception("HTTP error", exc=exc)
-                return starlette.responses.JSONResponse({"detail": message}, status_code=exc.response.status_code)
+                return starlette.responses.JSONResponse(
+                    {"detail": message}, status_code=exc.response.status_code
+                )
 
             # handle any kind of timeout errors, note that we enforce the timeouts
-            except asyncio.TimeoutError as exc:
+            except TimeoutError as exc:
                 self._capture_exception(span, exc)
 
                 message = "request timed out"
@@ -177,7 +177,9 @@ def init() -> tuple[fastapi.FastAPI, slowapi.Limiter]:
     # pylint: disable=protected-access
     limiter = slowapi.Limiter(key_func=slowapi.util.get_remote_address)
     app.state.limiter = limiter
-    app.add_exception_handler(slowapi.errors.RateLimitExceeded, slowapi._rate_limit_exceeded_handler)  # type: ignore
+    app.add_exception_handler(
+        slowapi.errors.RateLimitExceeded, slowapi._rate_limit_exceeded_handler
+    )  # type: ignore
     # pylint: enable=protected-access
 
     return app, limiter

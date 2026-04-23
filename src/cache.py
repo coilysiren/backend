@@ -39,15 +39,21 @@ class TaskDataStatus(enum.Enum):
 class AsyncTaskData:
     task_id: str
     task_status: TaskDataStatus
-    task_data: typing.Optional[typing.Any]
+    task_data: typing.Any | None
 
     def to_dict(self) -> dict:
-        return {"task_id": self.task_id, "task_status": self.task_status.value, "task_data": self.task_data}
+        return {
+            "task_id": self.task_id,
+            "task_status": self.task_status.value,
+            "task_data": self.task_data,
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> "AsyncTaskData":
         return cls(
-            task_id=data["task_id"], task_status=TaskDataStatus(data["task_status"]), task_data=data["task_data"]
+            task_id=data["task_id"],
+            task_status=TaskDataStatus(data["task_status"]),
+            task_data=data["task_data"],
         )
 
 
@@ -58,7 +64,9 @@ def delete_keys(suffix: str) -> None:
         logger.info("cache", adjective="delete", key=key.decode("utf-8"))
 
 
-async def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Callable[[], requests.Response]) -> dict:
+async def get_or_return_cached_request(
+    prefix: str, suffix: str, func: typing.Callable[[], requests.Response]
+) -> dict:
     key = f"{prefix}-{suffix}"
     expiry = 86400  # 1 day
     with _telemetry.tracer.start_as_current_span("get-or-return-cached-request") as span:
@@ -97,7 +105,9 @@ async def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Ca
                     key=key,
                     status_code=response.status_code,
                 )
-                raise requests.RequestException(f"Request failed with status code {response.status_code}")
+                raise requests.RequestException(
+                    f"Request failed with status code {response.status_code}"
+                )
             try:
                 output_json = response.json()
             except requests.exceptions.JSONDecodeError as exc:
@@ -115,7 +125,7 @@ async def get_or_return_cached_request(prefix: str, suffix: str, func: typing.Ca
 
             try:
                 redis.set(key, output_str, ex=expiry)
-            except Exception as exc:
+            except Exception:
                 pass
 
             logger.info(
@@ -163,7 +173,7 @@ async def get_or_return_cached(prefix: str, suffix: str, func: typing.Callable) 
 
             try:
                 redis.set(key, output_json, ex=expiry)
-            except Exception as exc:
+            except Exception:
                 pass
 
             logger.info("cache", adjective="miss", prefix=prefix, suffix=suffix, key=key)
@@ -178,7 +188,9 @@ def create_or_return_async_task_data(prefix: str, suffix: str) -> AsyncTaskData:
         task_data = redis.get(key)
 
         if task_data is None:
-            task_data = AsyncTaskData(task_id=key, task_status=TaskDataStatus.in_progress, task_data=None)
+            task_data = AsyncTaskData(
+                task_id=key, task_status=TaskDataStatus.in_progress, task_data=None
+            )
             redis.set(key, json.dumps(task_data.to_dict()), ex=expiry)
             return task_data
 

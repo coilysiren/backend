@@ -23,7 +23,7 @@ POPULARITY_PER_PAGE = 50
 MAX_POPULARITY_PAGES = 50
 
 
-class Bsky(object):
+class Bsky:
     _instance: typing.Optional["Bsky"] = None
     _client: atproto.Client = None
     _client_refresh_interval: int = 60 * 60 * 8  # 8 hours
@@ -31,7 +31,7 @@ class Bsky(object):
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(Bsky, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
     @property
@@ -71,7 +71,6 @@ async def popularity(client: atproto.Client, me: str, index=0) -> tuple[dict[str
 
     # For everyone that I follow,
     for my_follow in my_following_to_check:
-
         # List of who they follow
         following = await get_following_handles(client, my_follow)
 
@@ -104,7 +103,6 @@ async def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[st
 
     # For everyone that I follow,
     for my_follow in my_following_to_check:
-
         # List of who they follow
         following = await get_following_handles(client, my_follow)
 
@@ -118,7 +116,6 @@ async def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[st
                 and thier_follow != "handle.invalid"
                 and thier_follow != "bsky.app"
             ):
-
                 # Then add them to the suggestions
                 suggestions.append(thier_follow)
 
@@ -128,7 +125,7 @@ async def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[st
     return (suggestions, next_index)
 
 
-async def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, dict]:
+async def get_profile(client: atproto.Client, handle: str) -> dict[str, dict]:
     def _get_profile_request():
         response = requests.get(
             "https://bsky.social/xrpc/app.bsky.actor.getProfile",
@@ -139,11 +136,13 @@ async def get_profile(client: atproto.Client, handle: str) -> typing.Dict[str, d
         response.raise_for_status()
         return response
 
-    output = await cache.get_or_return_cached_request("bsky.get-profile", handle, _get_profile_request)
+    output = await cache.get_or_return_cached_request(
+        "bsky.get-profile", handle, _get_profile_request
+    )
     return {output["did"]: output}
 
 
-async def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+async def get_followers(client: atproto.Client, handle: str) -> dict[str, typing.Any]:
     def _get_followers_request():
         response = requests.get(
             "https://bsky.social/xrpc/app.bsky.graph.getFollowers",
@@ -154,12 +153,14 @@ async def get_followers(client: atproto.Client, handle: str) -> typing.Dict[str,
         response.raise_for_status()
         return response
 
-    output = await cache.get_or_return_cached_request("bsky.get-followers", handle, _get_followers_request)
+    output = await cache.get_or_return_cached_request(
+        "bsky.get-followers", handle, _get_followers_request
+    )
     follows = {profile["did"]: profile for profile in output.get("followers", [])}
     return follows
 
 
-async def get_following(client: atproto.Client, handle: str) -> typing.Dict[str, typing.Any]:
+async def get_following(client: atproto.Client, handle: str) -> dict[str, typing.Any]:
     def _get_following_request():
         response = requests.get(
             "https://bsky.social/xrpc/app.bsky.graph.getFollows",
@@ -170,7 +171,9 @@ async def get_following(client: atproto.Client, handle: str) -> typing.Dict[str,
         response.raise_for_status()
         return response
 
-    output = await cache.get_or_return_cached_request("bsky.get-following", handle, _get_following_request)
+    output = await cache.get_or_return_cached_request(
+        "bsky.get-following", handle, _get_following_request
+    )
     follows = {profile["did"]: profile for profile in output.get("follows", [])}
     return follows
 
@@ -211,7 +214,9 @@ async def get_author_feed(
     return (output.get("feed", []), output.get("cursor", ""))
 
 
-async def get_author_feed_text(client: atproto.Client, handle: str, cursor: str = "") -> tuple[list[str], str]:
+async def get_author_feed_text(
+    client: atproto.Client, handle: str, cursor: str = ""
+) -> tuple[list[str], str]:
     def _get_author_feed_text_request():
         response = requests.get(
             "https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed",
@@ -225,7 +230,10 @@ async def get_author_feed_text(client: atproto.Client, handle: str, cursor: str 
     feed_data = await cache.get_or_return_cached_request(
         f"bsky.get-author-feed-text-{cursor}", handle, _get_author_feed_text_request
     )
-    return ([post["post"]["record"]["text"] for post in feed_data.get("feed", [])], feed_data.get("cursor", ""))
+    return (
+        [post["post"]["record"]["text"] for post in feed_data.get("feed", [])],
+        feed_data.get("cursor", ""),
+    )
 
 
 async def get_author_feed_texts(client: atproto.Client, handle: str, pages: int = 1) -> list[str]:

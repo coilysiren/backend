@@ -13,7 +13,7 @@ import sentry_sdk.integrations.starlette as sentry_starlette
 dotenv.load_dotenv()
 
 
-class Telemetry(object):
+class Telemetry:
     # https://opentelemetry.io/docs/languages/python/instrumentation/
 
     initalized = False

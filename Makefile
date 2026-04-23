@@ -1,10 +1,6 @@
 DEFAULT_GOAL := help
 
-# Any command that has the same name as a file or folder needs to be marked as phony
 .PHONY: deploy
-
-# Everything at the top level runs every time you do anything.
-# So only put fast commands up here.
 
 dns-name ?= $(shell cat config.yml | yq e '.dns-name')
 email ?= $(shell cat config.yml | yq e '.email')
@@ -47,52 +43,12 @@ build-native: .build
 #  see also: build-native
 build-docker: .build .build-docker
 
-## retrieve the bunny video from the server
-# via https://en.wikipedia.org/wiki/Big_Buck_Bunny
-retrieve-bunny:
-	scp kai@kai-server:/home/kai/bunny.webm .
-
 .publish:
 	docker tag $(name):$(git-hash) $(image-url)
 	docker push $(image-url)
 
 ## publish the docker image to the registry
 publish: build-docker .publish
-
-## deploy the namespace for the application
-deploy-namespace:
-	kubectl create namespace $(name-dashed)
-
-## deploy the cert secrets utilized by the application
-deploy-secrets-cert:
-	env \
-		NAME=$(name-dashed) \
-		envsubst < deploy/secrets-cert.yml | kubectl apply -f -
-
-## deploy the docker registry secret utilized by the application
-deploy-secrets-docker-repo:
-	$(eval github-token := $(shell aws ssm get-parameter --name "/github/pat" --with-decryption --query "Parameter.Value" --output text))
-	echo $(github-token) | docker login ghcr.io -u $(name) --password-stdin
-	kubectl create secret docker-registry docker-registry \
-		--namespace="$(name-dashed)" \
-		--docker-server=ghcr.io/$(name) \
-		--docker-username=$(name) \
-		--docker-password=$(github-token) \
-		--dry-run=client -o yaml | kubectl apply -f -
-
-
-# deploy-secrets-bsky:
-# 	kubectl create secret generic "$(name-dashed)"-bsky \
-# 		--namespace="$(name-dashed)" \
-# 		--from-literal=BSKY_USERNAME="$(shell gcloud secrets versions access latest --secret=bsky-username)" \
-# 		--from-literal=BSKY_PASSWORD="$(shell gcloud secrets versions access latest --secret=bsky-password)" \
-# 		--dry-run=client -o yml | kubectl apply -f -
-
-# deploy-secrets-honeycomb:
-# \	kubectl create secret generic "$(name-dashed)"-honeycomb \
-# 		--namespace="$(name-dashed)" \
-# 		--from-literal=HONEYCOMB_API_KEY="$(shell gcloud secrets versions access latest --secret=honeycomb-api-key)" \
-# 		--dry-run=client -o yml | kubectl apply -f -
 
 .deploy:
 	env \
@@ -112,4 +68,4 @@ run-native:
 ## run project inside of a docker container
 #  see also: run-native
 run-docker:
-	docker run --expose 4000 -it --rm $(name):latest
+	docker run --expose 4000 -p 4000:4000 -it --rm $(name):latest

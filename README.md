@@ -1,83 +1,40 @@
 # backend
 
-## Global Installs
+FastAPI service behind api.coilysiren.me. Deploys to the k3s homelab via the canonical rig in [infrastructure/docs/k3s-deploy-notes.md](../infrastructure/docs/k3s-deploy-notes.md).
 
-https://brew.sh/
+## Install
 
 ```bash
-brew install pyenv
-brew install curl
-brew install jq
-brew install redis
-brew install ffmpeg
-brew install mpv
-brew install --cask docker # probably this, didn't test
-
-brew install uv
-uv sync
-uv export --no-hashes --no-dev --no-emit-project --format requirements-txt -o requirements.txt
-
-# Optional:
-# pip install -r requirements.txt
+brew install uv jq redis ffmpeg mpv
+brew install --cask docker
 ```
 
-## Local Development
+## Environment
 
-### The basics
-
-Create .env file with the following contents
+Create `.env`:
 
 ```bash
-BSKY_USERNAME=coilysiren.me # use yours, not mine
-BSKY_PASSWORD=1244-1244-1244-1244 # this is a placeholder, create a real one here: https://bsky.app/settings/app-passwords
-
+BSKY_USERNAME=coilysiren.me
+BSKY_PASSWORD=xxxx-xxxx-xxxx-xxxx   # https://bsky.app/settings/app-passwords
 BSKY_BOT_USERNAME=coilysiren-bot.bsky.social
-BSYK_BOT_PASSWORD=1244-1244-1244-1244
-
+BSKY_BOT_PASSWORD=xxxx-xxxx-xxxx-xxxx
 OTEL_SDK_DISABLED=true
-REDISCLOUD_URL=redis://default:@127.0.0.1:6379 # Would be nice if heroku just provisioned it as "REDIS_URL", but alas. And we should match heroku locally.
+REDISCLOUD_URL=redis://default:@127.0.0.1:6379
 ```
 
-### Build
-
-Native
+## Run
 
 ```bash
-uv sync
+make build-native    # uv sync + export requirements.txt
+make run-native      # uvicorn on :4000
+
+make build-docker
+make run-docker
+
+curl http://localhost:4000/bsky/coilysiren.me/profile | jq
 ```
 
-Container
-
-```bash
-docker build \
-  -t coilysiren/backend:$(git rev-parse --short HEAD) \
-  -t coilysiren/backend:latest \
-  .
-```
-
-```powershell
-docker build `
-  -t coilysiren/backend:$(git rev-parse --short HEAD) `
-  -t coilysiren/backend:latest `
-  .
-```
-
-### API developement
-
-In one terminal, run either of these
-
-```bash
-uv run uvicorn src.main:app --reload --port 4000 --host 0.0.0.0
-docker run --name coilysiren/backend --rm coilysiren/backend
-```
-
-In a second terminal, run this:
-
-```bash
-curl "http://localhost:4000/bsky/coilysiren.me/profile" | jq
-```
-
-### Data Science
+## Data science notebook
 
 ```bash
 uv run jupyter notebook
