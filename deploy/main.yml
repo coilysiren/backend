@@ -31,6 +31,30 @@ spec:
       remoteRef:
         key: /github/pat
 ---
+# Bsky creds for the main account, needed by backend/bsky.py's
+# client.login(BSKY_USERNAME, BSKY_PASSWORD) path. /bsky/handle and
+# /bsky/password live in AWS SSM (see coilyco-ai/AGENTS.md inventory).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ${NAME}-bsky
+  namespace: ${NAME}
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-parameter-store
+    kind: ClusterSecretStore
+  target:
+    name: ${NAME}-bsky
+    creationPolicy: Owner
+  data:
+    - secretKey: BSKY_USERNAME
+      remoteRef:
+        key: /bsky/handle
+    - secretKey: BSKY_PASSWORD
+      remoteRef:
+        key: /bsky/password
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -62,6 +86,18 @@ spec:
           env:
             - name: PORT
               value: "80"
+            - name: PRODUCTION
+              value: "true"
+            - name: BSKY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ${NAME}-bsky
+                  key: BSKY_USERNAME
+            - name: BSKY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${NAME}-bsky
+                  key: BSKY_PASSWORD
           ports:
             - containerPort: 80
       restartPolicy: Always
