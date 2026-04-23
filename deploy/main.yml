@@ -55,6 +55,26 @@ spec:
       remoteRef:
         key: /bsky/password
 ---
+# Sentry DSN for this service, synced from AWS SSM via external-secrets.
+# Consumed by backend/telemetry.py's `sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"))`.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ${NAME}-sentry
+  namespace: ${NAME}
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-parameter-store
+    kind: ClusterSecretStore
+  target:
+    name: ${NAME}-sentry
+    creationPolicy: Owner
+  data:
+    - secretKey: SENTRY_DSN
+      remoteRef:
+        key: /sentry-dsn/backend
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -98,6 +118,11 @@ spec:
                 secretKeyRef:
                   name: ${NAME}-bsky
                   key: BSKY_PASSWORD
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: ${NAME}-sentry
+                  key: SENTRY_DSN
           ports:
             - containerPort: 80
       restartPolicy: Always
