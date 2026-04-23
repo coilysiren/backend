@@ -63,7 +63,7 @@ deploy: publish .deploy
 ## run project on your plain old machine
 #  see also: run-docker
 run-native:
-	uv run uvicorn src.main:app --reload --port 4000 --host 0.0.0.0
+	uv run uvicorn backend.main:app --reload --port 4000 --host 0.0.0.0
 
 ## run project inside of a docker container
 #  see also: run-native

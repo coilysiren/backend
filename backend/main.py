@@ -232,7 +232,7 @@ async def bsky_emoji_summary_start(
 
 
 # TODO: integrations with external services I already have credentials for in sibling repos.
-# Each of these should grow into a `src/<service>.py` module + routes here, mirroring the
+# Each of these should grow into a `backend/<service>.py` module + routes here, mirroring the
 # pattern used by `bsky.py`. Credentials should come from env vars loaded via dotenv.
 #
 # TODO(github): GitHub API integration. Used in ../website/scripts/fetch-now-data.ts for

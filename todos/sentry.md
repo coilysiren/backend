@@ -21,7 +21,7 @@ against my resume. Ship it, write it up, cross-link from the website.
 
 ## Backend (this repo)
 
-New module: `src/sentry.py`. FastAPI router mounted under `/sentry`.
+New module: `backend/sentry.py`. FastAPI router mounted under `/sentry`.
 
 1. **`GET /sentry/summary`** - rollup for the full org. Returns:
    - total events last 24h / 7d / 30d
@@ -38,7 +38,7 @@ New module: `src/sentry.py`. FastAPI router mounted under `/sentry`.
    date created, project count, new issue count. Lets the frontend show "what
    shipped recently and did it break anything."
 
-All responses JSON. All cached in Redis (already available, see `src/cache.py`)
+All responses JSON. All cached in Redis (already available, see `backend/cache.py`)
 with a 5-10 minute TTL. Sentry's rate limits are generous but a HN hug would
 still blow through them.
 

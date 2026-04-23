@@ -8,7 +8,7 @@ import invoke
 import requests  # type: ignore
 import structlog
 
-from src import bsky, cache, worker
+from backend import bsky, cache, worker
 
 dotenv.load_dotenv()
 bsky_instance = bsky.Bsky()
