@@ -237,20 +237,21 @@ async def bsky_emoji_summary_start(
 # Each of these should grow into a `src/<service>.py` module + routes here, mirroring the
 # pattern used by `bsky.py`. Credentials should come from env vars loaded via dotenv.
 #
-# TODO(github): GitHub API integration. Used in ../website/fetch-now-data.js for commits,
-#   PRs, and starred repos via the `gh` CLI. Add /github/{user}/... endpoints (recent
-#   commits, PRs, stars) using a GITHUB_TOKEN env var.
+# TODO(github): GitHub API integration. Used in ../website/scripts/fetch-now-data.ts for
+#   commits, PRs, and starred repos via the `gh` CLI. Add /github/{user}/... endpoints
+#   (recent commits, PRs, stars) using a GITHUB_TOKEN env var.
 #
-# TODO(youtube): YouTube Data API via Google OAuth. See ../website/scripts/youtube-auth.js
-#   and ../website/fetch-now-data.js. Port the OAuth token flow and expose
-#   /youtube/{channel}/... endpoints (recent uploads, watch history if available).
+# TODO(youtube): YouTube Data API via Google OAuth. See ../website/scripts/youtube-auth.ts
+#   and ../website/scripts/fetch-now-data.ts. Port the OAuth token flow and expose
+#   /youtube/{channel}/... endpoints (recent uploads, watch history if available). Creds
+#   live in SSM under /youtube/{client-id,client-secret,refresh-token}.
 #
-# TODO(reddit): Reddit public API (no auth). See ../website/fetch-now-data.js. Add
-#   /reddit/{user}/... endpoints (recent posts/comments).
+# TODO(reddit): Reddit public API (no auth). See ../website/scripts/fetch-now-data.ts.
+#   Add /reddit/{user}/... endpoints (recent posts/comments).
 #
-# TODO(steam): Steam Web API. See ../website/fetch-now-data.js (.steam-credentials.json).
-#   Add STEAM_API_KEY env var and /steam/{steamid}/... endpoints (recently played, owned
-#   games, achievements).
+# TODO(steam): Steam Web API. See ../website/scripts/fetch-now-data.ts. Creds live in
+#   SSM under /steam/{web-api-key,steam-id-64}. Add /steam/{steamid}/... endpoints
+#   (recently played, owned games, achievements).
 #
 # TODO(discord): Discord bot integration. See ../discord-bot/ (DISCORD_BOT_TOKEN). Decide
 #   whether this backend should host a bot worker, or just expose webhook endpoints the

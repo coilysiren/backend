@@ -1,7 +1,9 @@
 # YouTube wishlist
 
-Credentials: Google OAuth flow already wired in `../website/scripts/youtube-auth.js`,
-token cached at `.youtube-token.json`.
+Credentials: Google OAuth flow already wired in `../website/scripts/youtube-auth.ts`.
+Client id, client secret, and refresh token live in AWS SSM under `/youtube/*` (see
+workspace AGENTS.md SSM inventory). Access tokens are minted per run from the refresh
+token, not cached.
 
 ## Ideas
 
