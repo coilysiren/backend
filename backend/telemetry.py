@@ -8,6 +8,7 @@ import opentelemetry.sdk.trace.export as otel_export
 import opentelemetry.trace as otel_trace
 import sentry_sdk
 import sentry_sdk.integrations.fastapi as sentry_fastapi
+import sentry_sdk.integrations.logging as sentry_logging
 import sentry_sdk.integrations.starlette as sentry_starlette
 
 dotenv.load_dotenv()
@@ -46,9 +47,11 @@ class Telemetry:
         # Init a real version of the sentry client, just to make sure its working.
         sentry_sdk.init(
             dsn=os.getenv("SENTRY_DSN"),
+            enable_logs=True,
             integrations=[
                 sentry_starlette.StarletteIntegration(),
                 sentry_fastapi.FastApiIntegration(),
+                sentry_logging.LoggingIntegration(),
             ],
         )
         # Init a fake (empty) version of the sentry client, to avoid sending data locally.
