@@ -155,3 +155,5 @@ logs.log
 **/logs.log
 
 ~.bashrc
+.claude/settings.local.json
+.claude/worktrees/
