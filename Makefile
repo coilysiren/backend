@@ -56,6 +56,7 @@ publish: build-docker .publish
 		DNS_NAME=$(dns-name) \
 		IMAGE=$(image-url) \
 		envsubst < deploy/main.yml | kubectl apply -f -
+	kubectl rollout status deployment/$(name-dashed)-app -n $(name-dashed) --timeout=5m
 
 ## deploy the application to the cluster
 deploy: publish .deploy
