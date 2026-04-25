@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 import typing
-import urllib.parse
 
 import redis as _redis
 import requests  # type: ignore
@@ -19,14 +18,10 @@ cache: dict[str, typing.Any] = {}
 logger = structlog.get_logger()
 logging.basicConfig(stream=sys.stdout)
 
-redis_env = os.environ.get("REDISCLOUD_URL")
-redis_url = urllib.parse.urlparse(redis_env)
-redis = _redis.Redis(
-    host=redis_url.hostname,
-    port=redis_url.port,
-    password=redis_url.password,
-    socket_timeout=3,
-)
+# redis>=5 parses the full URL (host, port, db, auth, scheme) - the previous
+# urllib.parse round-trip silently dropped scheme (rediss://) and any path-
+# encoded db number. from_url is also what the redis client docs recommend.
+redis = _redis.from_url(os.environ["REDISCLOUD_URL"], socket_timeout=3)
 
 
 class TaskDataStatus(enum.Enum):

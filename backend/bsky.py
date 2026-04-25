@@ -125,72 +125,56 @@ async def suggestions(client: atproto.Client, me: str, index=0) -> tuple[list[st
     return (suggestions, next_index)
 
 
-async def get_profile(client: atproto.Client, handle: str) -> dict[str, dict]:
-    def _get_profile_request():
-        response = requests.get(
-            "https://bsky.social/xrpc/app.bsky.actor.getProfile",
-            params={"actor": handle},
-            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
-            timeout=10,
-        )
-        response.raise_for_status()
-        return response
+_BSKY_BASE = "https://bsky.social/xrpc"
+_BSKY_TIMEOUT = 10
 
+
+def _bsky_get(client: atproto.Client, endpoint: str, params: dict) -> requests.Response:
+    """Shared call shape: bearer auth from the atproto session, fixed timeout,
+    raise_for_status. Returns the raw Response so cache.get_or_return_cached_request
+    can read .json() / .status_code through its existing interface."""
+    response = requests.get(
+        f"{_BSKY_BASE}/{endpoint}",
+        params=params,
+        headers={"Authorization": f"Bearer {client._session.access_jwt}"},
+        timeout=_BSKY_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response
+
+
+async def get_profile(client: atproto.Client, handle: str) -> dict[str, dict]:
     output = await cache.get_or_return_cached_request(
-        "bsky.get-profile", handle, _get_profile_request
+        "bsky.get-profile",
+        handle,
+        lambda: _bsky_get(client, "app.bsky.actor.getProfile", {"actor": handle}),
     )
     return {output["did"]: output}
 
 
 async def get_followers(client: atproto.Client, handle: str) -> dict[str, typing.Any]:
-    def _get_followers_request():
-        response = requests.get(
-            "https://bsky.social/xrpc/app.bsky.graph.getFollowers",
-            params={"actor": handle, "limit": 100},
-            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
-            timeout=10,
-        )
-        response.raise_for_status()
-        return response
-
     output = await cache.get_or_return_cached_request(
-        "bsky.get-followers", handle, _get_followers_request
+        "bsky.get-followers",
+        handle,
+        lambda: _bsky_get(client, "app.bsky.graph.getFollowers", {"actor": handle, "limit": 100}),
     )
-    follows = {profile["did"]: profile for profile in output.get("followers", [])}
-    return follows
+    return {profile["did"]: profile for profile in output.get("followers", [])}
 
 
 async def get_following(client: atproto.Client, handle: str) -> dict[str, typing.Any]:
-    def _get_following_request():
-        response = requests.get(
-            "https://bsky.social/xrpc/app.bsky.graph.getFollows",
-            params={"actor": handle, "limit": 100},
-            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
-            timeout=10,
-        )
-        response.raise_for_status()
-        return response
-
     output = await cache.get_or_return_cached_request(
-        "bsky.get-following", handle, _get_following_request
+        "bsky.get-following",
+        handle,
+        lambda: _bsky_get(client, "app.bsky.graph.getFollows", {"actor": handle, "limit": 100}),
     )
-    follows = {profile["did"]: profile for profile in output.get("follows", [])}
-    return follows
+    return {profile["did"]: profile for profile in output.get("follows", [])}
 
 
 async def get_following_handles(client: atproto.Client, handle: str) -> list[str]:
-    def _get_following_handles_request():
-        response = requests.get(
-            "https://bsky.social/xrpc/app.bsky.graph.getFollows",
-            params={"actor": handle, "limit": 100},
-            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
-            timeout=10,
-        )
-        response.raise_for_status()
-        return response
-
     output = await cache.get_or_return_cached_request(
-        "bsky.get-following-handles", handle, _get_following_handles_request
+        "bsky.get-following-handles",
+        handle,
+        lambda: _bsky_get(client, "app.bsky.graph.getFollows", {"actor": handle, "limit": 100}),
     )
     return [profile["handle"] for profile in output.get("follows", [])]
 
@@ -198,18 +182,12 @@ async def get_following_handles(client: atproto.Client, handle: str) -> list[str
 async def get_author_feed(
     client: atproto.Client, handle: str, cursor: str = ""
 ) -> tuple[list[dict[str, typing.Any]], str]:
-    def _get_author_feed_request():
-        response = requests.get(
-            "https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed",
-            params={"actor": handle, "limit": 100, "cursor": cursor},
-            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
-            timeout=10,
-        )
-        response.raise_for_status()
-        return response
-
     output = await cache.get_or_return_cached_request(
-        f"bsky.get-author-feed-{cursor}", handle, _get_author_feed_request
+        f"bsky.get-author-feed-{cursor}",
+        handle,
+        lambda: _bsky_get(
+            client, "app.bsky.feed.getAuthorFeed", {"actor": handle, "limit": 100, "cursor": cursor}
+        ),
     )
     return (output.get("feed", []), output.get("cursor", ""))
 
@@ -217,18 +195,14 @@ async def get_author_feed(
 async def get_author_feed_text(
     client: atproto.Client, handle: str, cursor: str = ""
 ) -> tuple[list[str], str]:
-    def _get_author_feed_text_request():
-        response = requests.get(
-            "https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed",
-            params={"actor": handle, "limit": 100, "filter": "posts_no_replies", "cursor": cursor},
-            headers={"Authorization": f"Bearer {client._session.access_jwt}"},
-            timeout=10,
-        )
-        response.raise_for_status()
-        return response
-
     feed_data = await cache.get_or_return_cached_request(
-        f"bsky.get-author-feed-text-{cursor}", handle, _get_author_feed_text_request
+        f"bsky.get-author-feed-text-{cursor}",
+        handle,
+        lambda: _bsky_get(
+            client,
+            "app.bsky.feed.getAuthorFeed",
+            {"actor": handle, "limit": 100, "filter": "posts_no_replies", "cursor": cursor},
+        ),
     )
     return (
         [post["post"]["record"]["text"] for post in feed_data.get("feed", [])],
