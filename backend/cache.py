@@ -3,25 +3,36 @@ import dataclasses
 import enum
 import json
 import logging
-import os
 import sys
+import time
 import typing
 
-import redis as _redis
 import requests  # type: ignore
 import structlog
 
 from . import telemetry
 
 _telemetry = telemetry.Telemetry()
-cache: dict[str, typing.Any] = {}
 logger = structlog.get_logger()
 logging.basicConfig(stream=sys.stdout)
 
-# redis>=5 parses the full URL (host, port, db, auth, scheme) - the previous
-# urllib.parse round-trip silently dropped scheme (rediss://) and any path-
-# encoded db number. from_url is also what the redis client docs recommend.
-redis = _redis.from_url(os.environ["REDISCLOUD_URL"], socket_timeout=3)
+
+_store: dict[str, tuple[float, str]] = {}
+
+
+def _get(key: str) -> str | None:
+    entry = _store.get(key)
+    if entry is None:
+        return None
+    expires_at, value = entry
+    if expires_at < time.time():
+        _store.pop(key, None)
+        return None
+    return value
+
+
+def _set(key: str, value: str, ex: int) -> None:
+    _store[key] = (time.time() + ex, value)
 
 
 class TaskDataStatus(enum.Enum):
@@ -53,10 +64,9 @@ class AsyncTaskData:
 
 
 def delete_keys(suffix: str) -> None:
-    # Delete keys matching a pattern
-    for key in redis.scan_iter(f"*{suffix}"):
-        redis.delete(key)
-        logger.info("cache", adjective="delete", key=key.decode("utf-8"))
+    for key in [k for k in _store if k.endswith(suffix)]:
+        _store.pop(key, None)
+        logger.info("cache", adjective="delete", key=key)
 
 
 async def get_or_return_cached_request(
@@ -69,24 +79,12 @@ async def get_or_return_cached_request(
         span.set_attribute("prefix", prefix)
         span.set_attribute("suffix", suffix)
 
-        output = None
-        try:
-            output = redis.get(key)
-        except Exception as exc:
-            logger.exception(
-                "cache",
-                adjective="error",
-                prefix=prefix,
-                suffix=suffix,
-                key=key,
-                exc=exc,
-            )
+        output = _get(key)
 
         if output is not None:
             span.set_attribute("adjective", "hit")
             logger.info("cache", adjective="hit", prefix=prefix, suffix=suffix, key=key)
-            output = json.loads(output)
-            return output
+            return json.loads(output)
         else:
             span.set_attribute("adjective", "miss")
             response = await asyncio.to_thread(func)
@@ -116,12 +114,8 @@ async def get_or_return_cached_request(
                     exc=exc,
                 )
                 raise exc
-            output_str = json.dumps(output_json)
 
-            try:
-                redis.set(key, output_str, ex=expiry)
-            except Exception:
-                pass
+            _set(key, json.dumps(output_json), ex=expiry)
 
             logger.info(
                 "request-cache",
@@ -142,35 +136,16 @@ async def get_or_return_cached(prefix: str, suffix: str, func: typing.Callable) 
         span.set_attribute("prefix", prefix)
         span.set_attribute("suffix", suffix)
 
-        output = None
-
-        try:
-            output = redis.get(key)
-        except Exception as exc:
-            logger.exception(
-                "cache",
-                adjective="error",
-                prefix=prefix,
-                suffix=suffix,
-                key=key,
-                exc=exc,
-            )
+        output = _get(key)
 
         if output is not None:
             span.set_attribute("adjective", "hit")
             logger.info("cache", adjective="hit", prefix=prefix, suffix=suffix, key=key)
-            output = json.loads(output)
-            return output
+            return json.loads(output)
         else:
             span.set_attribute("adjective", "miss")
             output = await asyncio.to_thread(func)
-            output_json = json.dumps(output)
-
-            try:
-                redis.set(key, output_json, ex=expiry)
-            except Exception:
-                pass
-
+            _set(key, json.dumps(output), ex=expiry)
             logger.info("cache", adjective="miss", prefix=prefix, suffix=suffix, key=key)
             return output
 
@@ -179,37 +154,27 @@ def create_or_return_async_task_data(prefix: str, suffix: str) -> AsyncTaskData:
     key = f"{prefix}-{suffix}"
     expiry = 86400  # 1 day
 
-    try:
-        task_data = redis.get(key)
+    raw = _get(key)
 
-        if task_data is None:
-            task_data = AsyncTaskData(
-                task_id=key, task_status=TaskDataStatus.in_progress, task_data=None
-            )
-            redis.set(key, json.dumps(task_data.to_dict()), ex=expiry)
-            return task_data
-
-        else:
-            task_data = json.loads(task_data)
-            return AsyncTaskData.from_dict(task_data)
-
-    except Exception as exc:
-        logger.exception(
-            "cache",
-            adjective="error",
-            prefix=prefix,
-            suffix=suffix,
+    if raw is None:
+        task_data = AsyncTaskData(
+            task_id=key, task_status=TaskDataStatus.in_progress, task_data=None
         )
-        raise exc
+        _set(key, json.dumps(task_data.to_dict()), ex=expiry)
+        return task_data
+
+    return AsyncTaskData.from_dict(json.loads(raw))
 
 
 def get_async_task_data(prefix: str, suffix: str) -> AsyncTaskData:
     key = f"{prefix}-{suffix}"
-    task_data = redis.get(key)
-    return AsyncTaskData.from_dict(json.loads(task_data))
+    raw = _get(key)
+    if raw is None:
+        raise KeyError(key)
+    return AsyncTaskData.from_dict(json.loads(raw))
 
 
 def set_async_task_data(prefix: str, suffix: str, task_data: AsyncTaskData) -> None:
     key = f"{prefix}-{suffix}"
     expiry = 86400  # 1 day
-    redis.set(key, json.dumps(task_data.to_dict()), ex=expiry)
+    _set(key, json.dumps(task_data.to_dict()), ex=expiry)

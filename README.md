@@ -5,7 +5,7 @@ FastAPI service behind api.coilysiren.me. Deploys to the k3s homelab via the can
 ## Install
 
 ```bash
-brew install uv jq redis ffmpeg mpv
+brew install uv jq ffmpeg mpv
 brew install --cask docker
 ```
 
@@ -19,7 +19,6 @@ BSKY_PASSWORD=xxxx-xxxx-xxxx-xxxx   # https://bsky.app/settings/app-passwords
 BSKY_BOT_USERNAME=coilysiren-bot.bsky.social
 BSKY_BOT_PASSWORD=xxxx-xxxx-xxxx-xxxx
 OTEL_SDK_DISABLED=true
-REDISCLOUD_URL=redis://default:@127.0.0.1:6379
 ```
 
 ## Run

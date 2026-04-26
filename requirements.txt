@@ -213,8 +213,6 @@ python-dotenv==1.2.2
     #   uvicorn
 pyyaml==6.0.3
     # via uvicorn
-redis==7.4.0
-    # via backend
 regex==2026.4.4
     # via
     #   nltk

@@ -19,7 +19,6 @@ dependencies = [
   "opentelemetry-instrumentation-fastapi>=0.62b0,<0.63",
   "websockets>=13,<17",
   "invoke>=3.0.3,<4.0.0",
-  "redis>=7.4.0,<8.0.0",
   "spacy>=3.8.14,<4.0.0",
   "nltk>=3.9.4,<4.0.0",
   "yake>=0.7.3,<0.8.0",
