@@ -248,7 +248,7 @@ srsly==2.5.3
     #   spacy
     #   thinc
     #   weasel
-starlette==0.46.2
+starlette==0.49.1
     # via fastapi
 structlog==25.5.0
     # via backend
