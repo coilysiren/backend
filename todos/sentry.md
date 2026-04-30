@@ -14,9 +14,9 @@ Org slug and project slugs are not secret; hardcode or surface via env
 
 Sentry has no first-class public dashboard. Everything in-product is auth-gated.
 The goal is a public, read-only "how's the homelab" surface that makes the
-observability work visible without handing out org access.
+o11y work visible without handing out org access.
 
-Secondary goal: the repo itself is part of the observability-backfill story
+Secondary goal: the repo itself is part of the o11y-backfill story
 against my resume. Ship it, write it up, cross-link from the website.
 
 ## Backend (this repo)

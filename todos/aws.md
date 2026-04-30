@@ -48,7 +48,7 @@ SSM Parameter Store and S3 are the primary services in use today.
   to point at when making the AI SRE pitch — pitch + code beats pitch alone.
 - **Gauntlet agent telemetry** — push the 20 running Gauntlet agents' outputs into
   CloudWatch Logs Insights, build a single dashboard. Gives you the screenshot for the
-  coilysiren.me writeup and avoids reinventing observability.
+  coilysiren.me writeup and avoids reinventing o11y.
 - **MFA backup vault** — KMS-encrypted parameter in SSM holding your TOTP seeds (or a
   reference to a Backblaze B2 bundle). You flagged "I need to backup my MFA. Not today
   though" — give yourself a one-command path so it's a 5-minute job when you do.
