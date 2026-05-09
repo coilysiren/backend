@@ -1,0 +1,24 @@
+# Per-repo command allowlist for backend. Coily is the canonical entry
+# point for dev verbs here; the lockdown denies bare uv/docker invocations,
+# so operators (human or agent) type `coily <verb>`, not `make build-native`.
+#
+# Names follow coily's [a-z0-9-] rule. Argv validation rejects shell
+# metacharacters at invocation time, so flags forward verbatim through
+# coily's user-extras mechanism.
+
+commands:
+  build-native:
+    run: make build-native
+    description: uv lock + uv sync. Rebuilds requirements.txt from pyproject.toml.
+  build-docker:
+    run: make build-docker
+    description: Build the docker image locally with BuildKit cache.
+  publish:
+    run: make publish
+    description: Tag and push the docker image to ghcr.io.
+  run-native:
+    run: make run-native
+    description: Run the FastAPI server with autoreload on port 4000.
+  run-docker:
+    run: make run-docker
+    description: Run the published container locally on port 4000.
