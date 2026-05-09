@@ -70,3 +70,37 @@ run-native:
 #  see also: run-native
 run-docker:
 	docker run --expose 4000 -p 4000:4000 -it --rm $(name):latest
+
+# Dev/debug CLI targets. Each delegates to `backend.cli`. The leading
+# `--` separates make-target args from the subcommand args. Pass values
+# as variables, e.g. `make bsky-emoji-summary handle=coilysiren.me`.
+
+## clear cache keys with the given suffix
+#  vars: suffix (required)
+clear-cache:
+	uv run python -m backend.cli clear-cache --suffix $(suffix)
+
+## call a bluesky xrpc endpoint with caching
+#  vars: path (required), kwargs (optional, space-separated key value pairs)
+bsky-cli:
+	uv run python -m backend.cli bsky-cli --path "$(path)" --kwargs "$(kwargs)"
+
+## dump an author's feed texts
+#  vars: handle (required), pages (default 1)
+bsky-get-author-feed-texts:
+	uv run python -m backend.cli bsky-get-author-feed-texts \
+		--handle $(handle) --pages $(or $(pages),1)
+
+## run the emoji-summary nlp job for a handle
+#  vars: handle (required), num_keywords (default 25), num_feed_pages (default 25)
+bsky-emoji-summary:
+	uv run python -m backend.cli bsky-emoji-summary \
+		--handle $(handle) \
+		--num-keywords $(or $(num_keywords),25) \
+		--num-feed-pages $(or $(num_feed_pages),25)
+
+## stream a local video file in fixed-size chunks
+#  vars: path (required), chunk_size (default 1, in KB)
+stream-video:
+	uv run python -m backend.cli stream-video \
+		--path $(path) --chunk-size $(or $(chunk_size),1)

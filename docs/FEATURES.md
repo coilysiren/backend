@@ -56,8 +56,8 @@ FastAPI service behind `api.coilysiren.me`. Wraps the Bluesky AT Protocol with c
 
 ## CLI / dev tooling
 
-- **Invoke tasks** - bsky XRPC invoker, author-feed text dump, emoji-summary runner, cache clear, video stream demo - [tasks.py](tasks.py)
-- **Makefile** - `build-native`, `build-docker`, `run-native` (uvicorn :4000), `run-docker`, `deploy` - [Makefile](Makefile)
+- **Dev/debug CLI** - bsky XRPC invoker, author-feed text dump, emoji-summary runner, cache clear, video stream demo. Argparse subcommands wrapped by Makefile + coily - [backend/cli.py](backend/cli.py)
+- **Makefile** - `build-native`, `build-docker`, `run-native` (uvicorn :4000), `run-docker`, `deploy`, plus per-CLI-subcommand targets - [Makefile](Makefile)
 - **Toolchain** - ruff, mypy, pytest, ptipython, jupyter - [pyproject.toml](pyproject.toml)
 - **Test endpoints** - `/explode` for forced exceptions, `/streaming` async generator demo - [backend/main.py:28](backend/main.py:28), [backend/streaming.py](backend/streaming.py)
 
