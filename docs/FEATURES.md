@@ -74,3 +74,11 @@ Listed in [backend/main.py:238](backend/main.py:238) as backlog. Track scope cre
 - OpenAI (fallback embeddings/completions)
 - AWS boto3 (SSM, S3 artifact cache)
 - Netlify webhooks (rebuild trigger on data change)
+
+## See also
+
+- [README.md](../README.md) - human-facing intro.
+- [AGENTS.md](../AGENTS.md) - agent-facing operating rules.
+- [.coily/coily.yaml](../.coily/coily.yaml) - allowlisted commands.
+
+Cross-reference convention from [coilysiren/coilyco-ai#313](https://github.com/coilysiren/coilyco-ai/issues/313).
