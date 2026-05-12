@@ -38,3 +38,7 @@ curl http://localhost:4000/bsky/coilysiren.me/profile | jq
 ```bash
 uv run jupyter notebook
 ```
+
+## Commands
+
+Dev commands are declared in [`.coily/coily.yaml`](.coily/coily.yaml). Run them as `coily exec <verb>`.
