@@ -12,12 +12,8 @@ image-url ?= ghcr.io/$(name)/$(name-dashed):$(git-hash)
 echo:
 	echo $(image-url)
 
-help:
-	@awk '/^## / \
-		{ if (c) {print c}; c=substr($$0, 4); next } \
-			c && /(^[[:alpha:]][[:alnum:]_-]+:)/ \
-		{printf "%-30s %s\n", $$1, c; c=0} \
-			END { print c }' $(MAKEFILE_LIST)
+help: ## Print this help.
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "%-30s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # rebuild requirements.txt whenever pyproject.toml changes
 .build: pyproject.toml
@@ -25,9 +21,7 @@ help:
 	uv export --no-hashes --no-dev --no-emit-project --format requirements-txt -o requirements.txt
 	touch .build
 
-## build project on your plain old machine
-#  see also: build-docker
-build-native: .build
+build-native: .build ## uv lock + uv sync. Rebuilds requirements.txt from pyproject.toml.
 	uv sync
 
 .build-docker:
@@ -39,16 +33,13 @@ build-native: .build
 		-t $(name):latest \
 		.
 
-## build project inside of a docker container
-#  see also: build-native
-build-docker: .build .build-docker
+build-docker: .build .build-docker ## Build the docker image locally with BuildKit cache.
 
 .publish:
 	docker tag $(name):$(git-hash) $(image-url)
 	docker push $(image-url)
 
-## publish the docker image to the registry
-publish: build-docker .publish
+publish: build-docker .publish ## Tag and push the docker image to ghcr.io.
 
 .deploy:
 	env \
@@ -58,49 +49,33 @@ publish: build-docker .publish
 		envsubst < deploy/main.yml | kubectl apply -f -
 	kubectl rollout status deployment/$(name-dashed)-app -n $(name-dashed) --timeout=5m
 
-## deploy the application to the cluster
-deploy: publish .deploy
+deploy: publish .deploy ## Deploy the application to the cluster.
 
-## run project on your plain old machine
-#  see also: run-docker
-run-native:
+run-native: ## Run the FastAPI server with autoreload on port 4000.
 	uv run uvicorn backend.main:app --reload --port 4000 --host 0.0.0.0
 
-## run project inside of a docker container
-#  see also: run-native
-run-docker:
+run-docker: ## Run the published container locally on port 4000.
 	docker run --expose 4000 -p 4000:4000 -it --rm $(name):latest
 
-# Dev/debug CLI targets. Each delegates to `backend.cli`. The leading
-# `--` separates make-target args from the subcommand args. Pass values
-# as variables, e.g. `make bsky-emoji-summary handle=coilysiren.me`.
+# Dev/debug CLI targets. Each delegates to `backend.cli`. Pass values as
+# variables, e.g. `make bsky-emoji-summary handle=coilysiren.me`.
 
-## clear cache keys with the given suffix
-#  vars: suffix (required)
-clear-cache:
+clear-cache: ## Delete cache keys with the given suffix. Args - suffix=<str>.
 	uv run python -m backend.cli clear-cache --suffix $(suffix)
 
-## call a bluesky xrpc endpoint with caching
-#  vars: path (required), kwargs (optional, space-separated key value pairs)
-bsky-cli:
+bsky-cli: ## Call a Bluesky XRPC endpoint with caching. Args - path=<str> kwargs=<str>.
 	uv run python -m backend.cli bsky-cli --path "$(path)" --kwargs "$(kwargs)"
 
-## dump an author's feed texts
-#  vars: handle (required), pages (default 1)
-bsky-get-author-feed-texts:
+bsky-get-author-feed-texts: ## Dump an author's feed texts. Args - handle=<str> pages=<int>.
 	uv run python -m backend.cli bsky-get-author-feed-texts \
 		--handle $(handle) --pages $(or $(pages),1)
 
-## run the emoji-summary nlp job for a handle
-#  vars: handle (required), num_keywords (default 25), num_feed_pages (default 25)
-bsky-emoji-summary:
+bsky-emoji-summary: ## Run the emoji-summary NLP job. Args - handle=<str> num_keywords=<int> num_feed_pages=<int>.
 	uv run python -m backend.cli bsky-emoji-summary \
 		--handle $(handle) \
 		--num-keywords $(or $(num_keywords),25) \
 		--num-feed-pages $(or $(num_feed_pages),25)
 
-## stream a local video file in fixed-size chunks
-#  vars: path (required), chunk_size (default 1, in KB)
-stream-video:
+stream-video: ## Stream a local video file in fixed-size chunks. Args - path=<str> chunk_size=<int>.
 	uv run python -m backend.cli stream-video \
 		--path $(path) --chunk-size $(or $(chunk_size),1)
