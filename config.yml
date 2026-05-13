@@ -1,3 +1,5 @@
 dns-name: api.coilysiren.me
 email: coilysiren@gmail.com
 name: coilysiren/backend
+tailnet:
+  shortcut: api
