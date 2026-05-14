@@ -9,7 +9,7 @@
 commands:
   build-native:
     run: make build-native
-    description: uv lock + uv sync. Rebuilds requirements.txt from pyproject.toml.
+    description: uv lock + uv sync.
   build-docker:
     run: make build-docker
     description: Build the docker image locally with BuildKit cache.

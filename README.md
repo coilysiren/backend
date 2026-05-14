@@ -24,7 +24,7 @@ OTEL_SDK_DISABLED=true
 ## Run
 
 ```bash
-make build-native    # uv sync + export requirements.txt
+make build-native    # uv lock + uv sync
 make run-native      # uvicorn on :4000
 
 make build-docker
