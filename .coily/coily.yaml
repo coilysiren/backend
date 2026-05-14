@@ -37,3 +37,16 @@ commands:
   stream-video:
     run: make stream-video
     description: Stream a local video file in fixed-size chunks. Args - path=<str> chunk_size=<int>.
+
+# Catalog metadata for the cross-repo knowledge graph.
+# Schema: coilysiren/coilyco-ai#420 (tracker).
+catalog:
+  kind: Component
+  type: library
+  system: shared
+  owner: kai
+  lifecycle: production
+  description: "Generic Python backend server template."
+  dependsOn: []
+  providesApis:
+    - python-backend-template
