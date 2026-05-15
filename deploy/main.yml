@@ -33,7 +33,7 @@ spec:
 ---
 # Bsky creds for the main account, needed by backend/bsky.py's
 # client.login(BSKY_USERNAME, BSKY_PASSWORD) path. /bsky/handle and
-# /bsky/password live in AWS SSM (see coilyco-ai/AGENTS.md inventory).
+# /bsky/password live in AWS SSM (see agentic-os-kai/AGENTS.md inventory).
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
