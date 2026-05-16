@@ -104,5 +104,5 @@ it actually reads well on a phone.
   `bots` channel. Low-noise replacement for email alerts.
 - **Sentry x Bluesky**: weekly auto-skeet "homelab shipped N releases, caught M
   errors, here's what broke." Makes the o11y work legible as content.
-- **Sentry x claude-code-pulse**: surface unresolved-issue count in the
-  statusline when working in any coilysiren repo. Ambient awareness.
+- **Sentry x ambient statusline**: surface unresolved-issue count in the
+  Claude Code statusline when working in any coilysiren repo. Ambient awareness.
